@@ -6,6 +6,14 @@ property version : "1.0.0"
 property id : "com.kraigparkinson.OFTaskParser"
 
 -- script OFTaskParser
+property OFDateParser : script "com.kraigparkinson/OFDateParser"
+property textutil : script "com.kraigparkinson/ASText"
+
+property PROJECT_DELIM : " ::"
+property CONTEXT_DELIM : " @"
+property DATE_DELIM : " #"
+property ESTIMATE_DELIM : " $"
+
 on reparseTaskPropertiesFromTaskName(selectedTask)
 	local unparsedTaskName
 	
@@ -58,7 +66,7 @@ on findContextFromName(contextName)
 	
 	tell front document of application "OmniFocus"
 		
-		set contextNameElements to my getTextElements(contextName, ":")
+		set contextNameElements to textutil's getTextElements(contextName, ":")
 		
 		if ((count of contextNameElements) > 1) then
 			
@@ -98,33 +106,45 @@ on findContextFromName(contextName)
 end findContextFromName
 
 to parseDueDateFromTaskName(taskName)
+	local dueDateSegment
 	local dueDate
-	set taskNameElements to getTextElements(taskName, " #")
+	set taskNameElements to textutil's getTextElements(taskName, DATE_DELIM)
 	
 	if (count of taskNameElements) is 2 then
+		--Assuming it comes after a task name being present (being item 1)
 		set dueDateSegment to item 2 of taskNameElements
-		set dueDate to date dueDateSegment
-		--Might have other task elements coming after that
-		--			set dueDateElements to getTextElements(dueDateSegment, {" #", " $"})
 		
-		--			set dueDate to date item 1 of dueDateElements
+		--Might have estimate mixed in with that
+		set dueDateElements to textutil's getTextElements(dueDateSegment, {DATE_DELIM, ESTIMATE_DELIM})
+		
+		set dueDateSegment to item 1 of dueDateElements
 	else if (count of taskNameElements) is 3 then
 		set dueDateSegment to item 3 of taskNameElements
-		set dueDate to date dueDateSegment
+		
+		--Might have estimate mixed in with that
+		set dueDateElements to textutil's getTextElements(dueDateSegment, {DATE_DELIM, ESTIMATE_DELIM})
+		
+		set dueDateSegment to item 1 of dueDateElements
 	else
-		set dueDate to missing value
+		set dueDateSegment to missing value
 	end if
+	
+	tell OFDateParser
+		set dueDate to parseDueDate(dueDateSegment)
+	end tell
 	
 	return dueDate
 end parseDueDateFromTaskName
 
 on parseDeferDateFromTaskName(taskName)
 	local deferDate
-	set taskNameElements to getTextElements(taskName, " #")
+	set taskNameElements to textutil's getTextElements(taskName, DATE_DELIM)
 	
 	if (count of taskNameElements) is equal to 3 then
 		set deferDateSegment to item 2 of taskNameElements
-		set deferDate to date deferDateSegment
+		tell OFDateParser
+			set deferDate to parseDeferDate(deferDateSegment)
+		end tell
 	else
 		set deferDate to missing value
 	end if
@@ -133,33 +153,18 @@ on parseDeferDateFromTaskName(taskName)
 end parseDeferDateFromTaskName
 
 on parseTaskNameFromTaskName(unparsedTaskName)
-	return item 1 of getTextElements(unparsedTaskName, {" ::", " @", " #", " $"})
+	return item 1 of textutil's getTextElements(unparsedTaskName, {PROJECT_DELIM, CONTEXT_DELIM, DATE_DELIM, ESTIMATE_DELIM})
 end parseTaskNameFromTaskName
-
-on getTextElements(theText, delimeter)
-	local textElements
-	
-	set prevTIDs to text item delimiters of AppleScript
-	try
-		set text item delimiters of AppleScript to delimeter
-		set textElements to every text item of theText
-	on error
-		set text item delimiters of AppleScript to prevTIDs
-	end try
-	
-	set text item delimiters of AppleScript to prevTIDs
-	return textElements
-end getTextElements
 
 on parseContextNameFromTaskName(taskName)
 	local contextName
-	set taskNameElements to getTextElements(taskName, " @")
+	set taskNameElements to textutil's getTextElements(taskName, CONTEXT_DELIM)
 	
 	if (count of taskNameElements) is greater than 1 then
 		set contextNameSegment to item 2 of taskNameElements
 		
 		--Might have other task elements coming after that
-		set contextNameElements to getTextElements(contextNameSegment, {" #", " $"})
+		set contextNameElements to textutil's getTextElements(contextNameSegment, {DATE_DELIM, ESTIMATE_DELIM})
 		set contextName to item 1 of contextNameElements
 	else
 		set contextName to ""
@@ -170,13 +175,13 @@ end parseContextNameFromTaskName
 
 on parseProjectNameFromTaskName(taskName)
 	local projectName
-	set taskNameElements to getTextElements(taskName, " ::")
+	set taskNameElements to textutil's getTextElements(taskName, PROJECT_DELIM)
 	
 	if (count of taskNameElements) is greater than 1 then
 		set projectNameSegment to item 2 of taskNameElements
 		
 		--Might have other task elements coming after that
-		set projectNameElements to getTextElements(projectNameSegment, {" @", " #", " $"})
+		set projectNameElements to textutil's getTextElements(projectNameSegment, {CONTEXT_DELIM, DATE_DELIM, ESTIMATE_DELIM})
 		set projectName to item 1 of projectNameElements
 	else
 		set projectName to ""
@@ -189,7 +194,7 @@ on parseEstimateFromTaskName(taskName)
 	local theEstimate
 	local estimateInMinutes
 	
-	set taskNameElements to getTextElements(taskName, " $")
+	set taskNameElements to textutil's getTextElements(taskName, ESTIMATE_DELIM)
 	
 	if (count of taskNameElements) is greater than 1 then
 		set theEstimate to item 2 of taskNameElements

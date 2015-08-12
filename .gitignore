@@ -4,3 +4,5 @@ test/Test OF Task Parsing.scptd/Contents/Resources/Scripts/main.scpt
 build/DateFormatter.scptd/Contents/Resources/Scripts/main.scpt
 
 build/OFTaskParser.scptd/Contents/Resources/Scripts/main.scpt
+
+*.scpt

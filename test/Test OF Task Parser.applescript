@@ -6,25 +6,17 @@
 	@copyright 2015 kraigparkinson
 *)
 
-use OFTaskParser : script "com.kraigparkinson/OFTaskParser"
-use DateFormatter : script "com.kraigparkinson/DateFormatter"
-use ASUnit : script "com.lifepillar/ASUnit"
+property OFTaskParser : script "com.kraigparkinson/OFTaskParser"
+--use ASUnit : script "com.lifepillar/ASUnit"
 
-property parent : ASUnit
+property parent : script "com.lifepillar/ASUnit"
 property suite : makeTestSuite("OF Task Parsing")
---autorun(suite)
 
 my autorun(suite)
 
 script |Parse Tasks|
 	property parent : TestSet(me)
 	property taskList : missing value
-	
-	(*
-	on shouldEqual(expected, actual)
-		should(expected is equal to actual, "Expected: '" & expected & "', Actual: '" & actual & "'")
-	end shouldEqual
-	*)
 	
 	on setUp()
 		tell application "OmniFocus"
@@ -60,7 +52,7 @@ script |Parse Tasks|
 	script |parse context works|
 		property parent : UnitTest(me)
 		
-		tell script "OFTaskParser"
+		tell OFTaskParser
 			
 			my shouldEqual("", parseContextNameFromTaskName("Task Name ::Project Name"))
 			my shouldEqual("", parseContextNameFromTaskName("@Context Name"))
@@ -79,10 +71,15 @@ script |Parse Tasks|
 			my shouldEqual(missing value, parseDueDateFromTaskName("Task Name ::Project Name"))
 			my shouldEqual(missing value, parseDueDateFromTaskName("Task Name @Context Name"))
 			my shouldEqual(date "Saturday, May 23, 2015 at 2:00:00 PM", parseDueDateFromTaskName("Task Name @Context Name #05/23/2015 02:00PM"))
-			my shouldEqual(date "Sunday, May 24, 2015 at 12:00:00 AM", parseDueDateFromTaskName("Task Name @Context Name #2015-05-23 #2015-05-24"))
-			my shouldEqual(date "Sunday, May 24, 2015 at 12:00:00 AM", parseDueDateFromTaskName("Task Name @Context Name #2015-05-23 #2015-05-24 $5m"))
-			my shouldEqual(date "Sunday, May 24, 2015 at 12:00:00 AM", parseDueDateFromTaskName("Task Name #2015-05-23 #2015-05-24 $5m"))
-			my shouldEqual(date "Saturday, May 23, 2015 at 12:00:00 AM", parseDueDateFromTaskName("Task Name #2015-05-23 $5m"))
+			
+			set today to current date
+			set today to date "5:00PM" in today
+			
+			my shouldEqual(today, parseDueDateFromTaskName("Task Name @Context Name #today"))
+			my shouldEqual(date "Sunday, May 24, 2015 at 5:00:00 PM", parseDueDateFromTaskName("Task Name @Context Name #2015-05-23 #2015-05-24"))
+			my shouldEqual(date "Monday, May 25, 2015 at 5:00:00 PM", parseDueDateFromTaskName("Task Name @Context Name #2015-05-23 #2015-05-25 $5m"))
+			my shouldEqual(date "Tuesday, May 26, 2015 at 5:00:00 PM", parseDueDateFromTaskName("Task Name #2015-05-23 #2015-05-26 $5m"))
+			my shouldEqual(date "Wednesday, May 27, 2015 at 5:00:00 PM", parseDueDateFromTaskName("Task Name #2015-05-27 $5m"))
 		end tell
 	end script
 	
@@ -251,7 +248,7 @@ script |Parse Tasks|
 		
 		set expectedTaskName to "My New Task"
 		set expectedDueDateText to "06/25/2015"
-		set expectedDueDate to date expectedDueDateText
+		set expectedDueDate to date "5:00PM" in date expectedDueDateText
 		set expectedDeferDateText to "06/26/2015"
 		set expectedDeferDate to date expectedDeferDateText
 		set unparsedTaskName to expectedTaskName & " #" & expectedDeferDateText & " #" & expectedDueDateText
@@ -339,7 +336,7 @@ script |Parse Tasks|
 		set expectedContextName to "Read/Review"
 		--		set expectedContextName to "Hygiene"
 		set expectedDueDateText to "06/23/2015"
-		set expectedDueDate to date expectedDueDateText
+		set expectedDueDate to date "5:00PM" in date expectedDueDateText
 		set expectedEstimate to 5
 		set unparsedTaskName to expectedTaskName & " ::" & expectedProjectName & " @" & expectedContextParentName & ":" & expectedContextName & " #" & expectedDueDateText & " $" & expectedEstimate & "m"
 		
@@ -402,103 +399,5 @@ script |Parse Tasks|
 		end tell
 		
 	end script
-	
-	script |make pretty dates for OF without timezones and seconds|
-		property parent : UnitTest(me)
-		
-		tell DateFormatter
-			my shouldEqual("", reformatDateTimeStampToOF(""))
-			--shouldEqual("STOP", reformatDateTimeStampToOF("STOP"))
-			my shouldEqual("2015-06-19", reformatDateTimeStampToOF("2015-06-19"))
-			my shouldEqual("17:25:39-0600", reformatDateTimeStampToOF("17:25:39-0600"))
-			my shouldEqual("2015-06-19 at 17:25", reformatDateTimeStampToOF("2015-06-19T17:25:39-0600"))
-		end tell
-	end script
-	
-	script |can trim seconds from dates|
-		property parent : UnitTest(me)
-		
-		tell DateFormatter
-			my shouldEqual("", trimSeconds(""))
-			my shouldEqual("17:25", trimSeconds("17:25"))
-			my shouldEqual("17:25", trimSeconds("17:25:39"))
-			my shouldEqual("2015-06-19T17:25", trimSeconds("2015-06-19T17:25:39"))
-			my shouldEqual("2015-06-19T17:30", trimSeconds("2015-06-19T17:30:39"))
-		end tell
-	end script
-	
-	script |can trim time zones from dates|
-		property parent : UnitTest(me)
-		
-		tell DateFormatter
-			
-			my shouldEqual("", trimTimeZone(""))
-			my shouldEqual("2015-06-19T17:25:39", trimTimeZone("2015-06-19T17:25:39-0600"))
-		end tell
-	end script
-	
-	script |parse tasks without dates|
-		property parent : UnitTest(me)
-		
-		tell DateFormatter
-			
-			my shouldEqual("Uncanny", tidyTaskName("Uncanny"))
-			my shouldEqual("Uncanny $5m", tidyTaskName("Uncanny $5m"))
-			my shouldEqual("Topical thing", tidyTaskName("Topical thing"))
-			my shouldEqual("IATA project", tidyTaskName("IATA project"))
-			
-			my shouldEqual("Uncanny @Hygiene $5m", tidyTaskName("Uncanny @Hygiene $5m"))
-			my shouldEqual("Uncanny set-up @Hygiene", tidyTaskName("Uncanny set-up @Hygiene"))
-		end tell
-	end script
-	
-	script |parse tasks with just Due Dates|
-		property parent : UnitTest(me)
-		
-		tell DateFormatter
-			
-			my shouldEqual("Uncanny #2015-06-19 at 17:25", tidyTaskName("Uncanny #2015-06-19T17:25:39-0600"))
-			my shouldEqual("Uncanny #2015-07-19 at 17:25 $5", tidyTaskName("Uncanny #2015-07-19T17:25:39-0600 $5"))
-		end tell
-	end script
-	
-	script |parse tasks with no subject and a due date|
-		property parent : UnitTest(me)
-		
-		tell DateFormatter
-			my shouldEqual("#2015-05-19 at 17:25", tidyTaskName("#2015-05-19T17:25:39-0600"))
-		end tell
-	end script
-	
-	script |parse tasks with hyphenated task names|
-		property parent : UnitTest(me)
-		
-		tell DateFormatter
-			
-			my shouldEqual("Uncanny worlds-of-wonder #2015-06-19 at 17:25", tidyTaskName("Uncanny worlds-of-wonder #2015-06-19T17:25:39-0600"))
-			my shouldEqual("Uncanny worlds-of-wonder #2015-06-19 at 00:00 #2015-06-20 at 17:00", tidyTaskName("Uncanny worlds-of-wonder #2015-06-19T00:00:39-0600 #2015-06-20T17:00:22-0600"))
-		end tell
-	end script
-	
-	script |parse tasks with due and defer dates|
-		property parent : UnitTest(me)
-		
-		tell DateFormatter
-			my shouldEqual("Uncanny #2015-06-19 at 17:25 #2015-06-21 at 17:00", tidyTaskName("Uncanny #2015-06-19T17:25:39-0600 #2015-06-21T17:00:00-0600"))
-			my shouldEqual("Uncanny #2015-06-19 at 17:25 #2015-06-21 at 17:00 $5m", tidyTaskName("Uncanny #2015-06-19T17:25:39-0600 #2015-06-21T17:00:00-0600 $5m"))
-		end tell
-	end script
-	
-	script |parse tasks with Due Dates and Contexts|
-		property parent : UnitTest(me)
-		
-		tell DateFormatter
-			
-			my shouldEqual("Uncanny @Hygiene #2015-06-19 at 17:25", tidyTaskName("Uncanny @Hygiene #2015-06-19T17:25:39-0600"))
-			my shouldEqual("Uncanny @Hygiene #2015-06-19 at 17:25 #2015-06-20 at 17:00 $5m", tidyTaskName("Uncanny @Hygiene #2015-06-19T17:25:39-0600 #2015-06-20T17:00:39-0600 $5m"))
-			my shouldEqual("Foo @Hygiene #2015-06-22 at 00:19 #2015-06-22 at 00:19 $5m", tidyTaskName("Foo @Hygiene #2015-06-22T00:19:43-0600 #2015-06-22T00:19:51-0600 $5m"))
-		end tell
-	end script
-	
 	
 end script
