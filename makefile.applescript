@@ -20,34 +20,56 @@ script api
 	
 	ohai("Running HeaderDoc, please wait...")
 	--Set LANG to get rid of warnings about missing default encoding
-	shell for "env LANG=en_US.UTF-8 headerdoc2html" given options:{"-q", "-o", dir, "OFTaskParser.applescript"}
-	--	shell for "env LANG=en_US.UTF-8 headerdoc2html" given options:{"-q", "-o", dir, "OFDateParser.applescript"}
+	shell for "env LANG=en_US.UTF-8 headerdoc2html" given options:{"-q", "-o", dir, "OFTransportTextParsingApplication.applescript"}
 	shell for "env LANG=en_US.UTF-8 gatherheaderdoc" given options:dir
 end script
 
-
-script BuildOFTaskParser
+script BuildScriptLibrary
 	property parent : Task(me)
-	property name : "oftaskparser"
-	property description : "Build OFTaskParser"
+	property name : "build/library"
+	property description : "Build Script Libraries"
 	
-	makeScriptBundle from "src/OFTaskParser.applescript" at "build" with overwriting
+	property sourceDir : "src/Script Libraries/"
+	property destinationDir : "build/Script Libraries"
+
+	makeScriptBundle from joinPath(sourceDir, "OmniFocusDomain.applescript") at destinationDir with overwriting
+	makeScriptBundle from joinPath(sourceDir, "OFTransportTextParsingApplication.applescript") at destinationDir with overwriting
+--	makeScriptBundle from joinPath(sourceDir, "OFDateParser.applescript") at destinationDir with overwriting
+	makeScriptBundle from joinPath(sourceDir, "OmniFocus Rules Engine.applescript") at destinationDir with overwriting
+	makeScriptBundle from joinPath(sourceDir, "Creating Flow with OmniFocus Rules.applescript") at destinationDir with overwriting
 end script
 
-script BuildOFDateParser
+script BuildOFApplicationScripts
 	property parent : Task(me)
-	property name : "ofdateparser"
-	property description : "Build OFDateParser"
+	property name : "build/omnifocus-scripts"
+	property description : "Build OmniFocus Application Scripts"
 	
-	makeScriptBundle from "src/OFDateParser.applescript" at "build" with overwriting
+	property sourceDir : "src/OmniFocus Scripts/"
+	property destinationDir : "build/OmniFocus Scripts"
+
+	makeScriptBundle from joinPath(sourceDir, "Process Inbox.applescript") at destinationDir with overwriting
+	makeScriptBundle from joinPath(sourceDir, "Tidy.applescript") at destinationDir with overwriting
+	makeScriptBundle from joinPath(sourceDir, "Repeat Defer Daily.applescript") at destinationDir with overwriting
+end script
+
+script BuildHazelScripts
+	property parent : Task(me)
+	property name : "build/hazel"
+	property description : "Build Process Inbox"
+
+	property sourceDir : "src/Hazel Scripts/"
+	property destinationDir : "build/Hazel Scripts"
+	
+	makeScriptBundle from joinPath(sourceDir, "OmniFocus Rule Processing Daemon.applescript") at destinationDir with overwriting
 end script
 
 script build
 	property parent : Task(me)
 	property description : "Build all source AppleScript scripts"
 	
-	tell BuildOFDateParser to exec:{}
-	tell BuildOFTaskParser to exec:{}
+	tell BuildScriptLibrary to exec:{}
+	tell BuildOFApplicationScripts to exec:{}
+	tell BuildHazelScripts to exec:{}
 	
 	osacompile(glob({}), "scpt", {"-x"})
 end script
@@ -64,7 +86,7 @@ script clobber
 	property description : "Remove any generated file"
 	
 	tell clean to exec:{}
-	removeItems at glob({"OFTaskParser-*", "*.tar.gz", "*.html"}) with forcing
+	removeItems at glob({"OFTransportTextParsingApplication-*", "*.tar.gz", "*.html"}) with forcing
 end script
 
 script doc
@@ -87,20 +109,20 @@ script dist
 	property dir : missing value
 	
 	tell clobber to exec:{}
-	tell BuildOFDateParser to exec:{}
-	tell BuildOFTaskParser to exec:{}
+	tell BuildScriptLibrary to exec:{}
+	tell BuildOFApplicationScripts to exec:{}
+	tell BuildHazelScripts to exec:{}
 	
 	tell api to exec:{}
 	tell doc to exec:{}
 	
 	set {n, v} to {name, version} of Â
-		(run script POSIX file (joinPath(workingDirectory(), "src/OFTaskParser.applescript")))
-	--	set {n, v} to {name, version} of Â
+		(run script POSIX file (joinPath(workingDirectory(), "src/OFTransportTextParsingApplication.applescript")))
 	--	(run script POSIX file (joinPath(workingDirectory(), "src/OFDateParser.applescript")))
 	set dir to n & "-" & v
 	makePath(dir)
-	copyItems at {"build/OFTaskParser.scptd", "build/OFDateParser.scptd", "COPYING", "Documentation", Â
-		"README.html"} into dir
+--	copyItems at {"build/OFTransportTextParsingApplication.scptd", "build/OFDateParser.scptd", "build/OmniFocus Scripts/OmniFocusDomain.scptd", "build/OFTransportTextParsingApplication.scptd", "build/Process Inbox.scptd", "COPYING", "Documentation", Â
+--		"README.html"} into dir
 end script
 
 script gzip
@@ -111,47 +133,79 @@ script gzip
 	do shell script "tar czf " & quoted form of (dist's dir & ".tar.gz") & space & quoted form of dist's dir & "/*"
 end script
 
-script install
+script installHazelScript
+	property parent : Task(me)
+	property dir : POSIX path of Â
+		((path to library folder from user domain) as text) & "Scripts/Hazel"
+		
+	property sourceDir : { "build/Hazel Scripts" }
+	property description : "Install Hazel Scripts in" & space & dir
+	
+	on installWithOverwriteAlert(scriptname, targetDirName)
+		set targetDir to joinPath(dir, targetDirName)
+		set targetPath to joinPath(targetDir, scriptname & ".scptd")
+
+		copyItems at sourceDir & scriptname & ".scptd" into targetDir with overwriting
+		ohai(scriptname & " installed at" & space & targetPath)
+	end installWithOverwriteAlert
+
+	tell BuildHazelScripts to exec:{}
+	
+	copyItems at sourceDir into joinPath(dir, "com.kraigparkinson") with overwriting
+--	copyItems at sourceDir & glob({"**/*.scptd"}) into joinPath(dir, "com.kraigparkinson") with overwriting
+	ohai("Hazel scripts installed at" & space & joinPath(dir, "com.kraigparkinson"))
+	
+	--installWithOverwriteAlert(originDir, "OmniFocus Rule Processing Daemon", "com.kraigparkinson")
+end script
+
+script InstallOFApplicationScripts
+	property parent : Task(me)
+	property dir : POSIX path of Â
+		((path to library folder from user domain) as text) & "Application Scripts/com.omnigroup.OmniFocus2"
+	property description : "Install Process Inbox in" & space & dir
+	
+	on installWithOverwriteAlert(scriptname, targetDirName)
+		set targetDir to joinPath(dir, targetDirName)
+		set targetPath to joinPath(targetDir, scriptname & ".scptd")
+
+		copyItem at "build/OmniFocus Scripts/" & scriptname & ".scptd" into targetDir with overwriting
+		ohai(scriptname & " installed at" & space & targetPath)
+	end installWithOverwriteAlert
+	
+	tell BuildOFApplicationScripts to exec:{}
+	installWithOverwriteAlert("Process Inbox", "")	
+	installWithOverwriteAlert("Tidy", "")	
+	installWithOverwriteAlert("Repeat Defer Daily", "")	
+end script
+
+script installScriptLibraries
 	property parent : Task(me)
 	property dir : POSIX path of Â
 		((path to library folder from user domain) as text) & "Script Libraries"
-	property description : "Install OFTaskParser in" & space & dir
+	property description : "Install OFTransportTextParsingApplication in" & space & dir
 	
-	tell BuildOFDateParser to exec:{}
-	set targetDir to joinPath(dir, "com.kraigparkinson")
-	set targetPath to joinPath(targetDir, "OFDateParser.scptd")
+	on installWithOverwriteAlert(scriptname, targetDirName)
+		set targetDir to joinPath(dir, targetDirName)
+		set targetPath to joinPath(targetDir, scriptname & ".scptd")
+
+		copyItem at "build/Script Libraries/" & scriptname & ".scptd" into targetDir with overwriting
+		ohai(scriptname & " installed at" & space & targetPath)
+	end installWithOverwriteAlert
+
+	tell BuildScriptLibrary to exec:{}
+	installWithOverwriteAlert("OmniFocusDomain", "com.kraigparkinson")
+--	installWithOverwriteAlert("OFDateParser", "com.kraigparkinson")
+	installWithOverwriteAlert("OFTransportTextParsingApplication", "com.kraigparkinson")
+	installWithOverwriteAlert("OmniFocus Rules Engine", "com.kraigparkinson")	
+	installWithOverwriteAlert("Creating Flow with OmniFocus Rules", "com.kraigparkinson")	
+end script
+
+script install
+	property parent : Task(me)
 	
-	if pathExists(targetPath) then
-		tell application "Terminal"
-			activate
-			display alert Â
-				"A version of OFDateParser is already installed." message targetPath & space & Â
-				"exists. Overwrite?" as warning Â
-				buttons {"Cancel", "OK"} Â
-				default button "Cancel" cancel button "Cancel"
-		end tell
-	end if
-	
-	copyItem at "build/OFDateParser.scptd" into targetDir with overwriting
-	ohai("OFDateParser installed at" & space & targetPath)
-	
-	tell BuildOFTaskParser to exec:{}
-	set targetDir to joinPath(dir, "com.kraigparkinson")
-	set targetPath to joinPath(targetDir, "OFTaskParser.scptd")
-	
-	if pathExists(targetPath) then
-		tell application "Terminal"
-			activate
-			display alert Â
-				"A version of OFTaskParser is already installed." message targetPath & space & Â
-				"exists. Overwrite?" as warning Â
-				buttons {"Cancel", "OK"} Â
-				default button "Cancel" cancel button "Cancel"
-		end tell
-	end if
-	
-	copyItem at "build/OFTaskParser.scptd" into targetDir with overwriting
-	ohai("OFTaskParser installed at" & space & targetPath)
+	tell installScriptLibraries to exec:{}
+	tell installHazelScript to exec:{}
+	tell InstallOFApplicationScripts to exec:{}
 	
 end script
 
@@ -162,8 +216,12 @@ script BuildTests
 	
 	owarn("Due to bugs in OS X Yosemite, building tests requires ASUnit to be installed.")
 	tell install to exec:{}
-	makeScriptBundle from "test/Test OF Task Parser.applescript" at "test" with overwriting
-	makeScriptBundle from "test/Test OF Date Parser.applescript" at "test" with overwriting
+	
+	makeScriptBundle from "test/Test OmniFocusDomain.applescript" at "test" with overwriting
+--	makeScriptBundle from "test/Test OF Date Parser.applescript" at "test" with overwriting
+	makeScriptBundle from "test/Test OFTransportTextParsingApplication.applescript" at "test" with overwriting
+	makeScriptBundle from "test/Test OmniFocus Rules Engine.applescript" at "test" with overwriting
+	makeScriptBundle from "test/Test Creating Flow with OmniFocus Rules.applescript" at "test" with overwriting
 end script
 
 script RunTests
@@ -174,26 +232,48 @@ script RunTests
 	
 	tell BuildTests to exec:{}
 	-- The following causes a segmentation fault unless ASUnit in installed in a shared location
-	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test OF Task Parser.scptd"))
+	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test OmniFocusDomain.scptd"))
+	run testSuite	
+
+--	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test OF Date Parser.scptd"))
+--	run testSuite
+	
+	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test OFTransportTextParsingApplication.scptd"))
 	run testSuite
 	
-	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test OF Date Parser.scptd"))
+	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test OmniFocus Rules Engine.scptd"))
 	run testSuite
+
+	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test Creating Flow with OmniFocus Rules.scptd"))
+	run testSuite
+
 end script
 
 script uninstall
 	property parent : Task(me)
 	property dir : POSIX path of Â
 		((path to library folder from user domain) as text) & "Script Libraries"
-	property description : "Remove OFTaskParser from" & space & dir
+	property description : "Remove OFTransportTextParsingApplication from" & space & dir
 	
-	set targetPath to joinPath(dir, "com.kraigparkinson/OFTaskParser.scptd")
+	set targetPath to joinPath(dir, "com.kraigparkinson/OFTransportTextParsingApplication.scptd")
 	if pathExists(targetPath) then
 		removeItem at targetPath
 	end if
 	ohai(targetPath & space & "deleted.")
-	
+	(*
 	set targetPath to joinPath(dir, "com.kraigparkinson/OFDateParser.scptd")
+	if pathExists(targetPath) then
+		removeItem at targetPath
+	end if
+	ohai(targetPath & space & "deleted.")
+	*)
+	set targetPath to joinPath(dir, "com.kraigparkinson/OmniFocusDomain.scptd")
+	if pathExists(targetPath) then
+		removeItem at targetPath
+	end if
+	ohai(targetPath & space & "deleted.")
+		
+	set targetPath to joinPath(dir, "com.kraigparkinson/OmniFocus Rules Engine.scptd")
 	if pathExists(targetPath) then
 		removeItem at targetPath
 	end if
@@ -204,10 +284,10 @@ end script
 script VersionTask
 	property parent : Task(me)
 	property name : "version"
-	property description : "Print OFTaskParser's version and exit"
+	property description : "Print OFTransportTextParsingApplication's version and exit"
 	property printSuccess : false
 	
 	set {n, v} to {name, version} of Â
-		(run script POSIX file (joinPath(workingDirectory(), "OFTaskParser.applescript")))
+		(run script POSIX file (joinPath(workingDirectory(), "OFTransportTextParsingApplication.applescript")))
 	ohai(n & space & "v" & v)
 end script

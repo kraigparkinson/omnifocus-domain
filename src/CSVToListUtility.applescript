@@ -1,24 +1,4 @@
-(* Assumes that the CSV text adheres to the convention:
-	Records are delimited by LFs or CRLFs (but CRs are also allowed here).
-	The last record in the text may or may not be followed by an LF or CRLF (or CR).
-	Fields in the same record are separated by commas (unless specified differently by parameter).
-	The last field in a record must not be followed by a comma.
-	Trailing or leading spaces in unquoted fields are not ignored (unless so specified by parameter).
-	Fields containing quoted text are quoted in their entirety, any space outside them being ignored.
-	Fields enclosed in double-quotes are to be taken verbatim, except for any included double-quote pairs, which are to be translated as double-quote characters.
-		
-	No other variations are currently supported. *)
-
-on csvToList(csvText, implementation)
-	-- The 'implementation' parameter must be a record. Leave it empty ({}) for the default assumptions: ie. comma separator, leading and trailing spaces in unquoted fields not to be trimmed. Otherwise it can have a 'separator' property with a text value (eg. {separator:tab}) and/or a 'trimming' property with a boolean value ({trimming:true}).
-	set {separator:separator, trimming:trimming} to (implementation & {separator:",", trimming:false})
-	
-	script o -- Lists for fast access.
-		property qdti : getTextItems(csvText, "\"")
-		property currentRecord : {}
-		property possibleFields : missing value
-		property recordList : {}
-	end script
+￿
 	
 	-- o's qdti is a list of the CSV's text items, as delimited by double-quotes.
 	-- Assuming the convention mentioned above, the number of items is always odd.
