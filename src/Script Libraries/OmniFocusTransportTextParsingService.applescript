@@ -1,9 +1,9 @@
-(*! @abstract <em>[text]</em> OFTransportTextParsingApplication's name. *)
-property name : "OFTransportTextParsingApplication"
-(*! @abstract <em>[text]</em> OFTransportTextParsingApplication's version. *)
+(*! @abstract <em>[text]</em> OmniFocusTransportTextParsingService's name. *)
+property name : "OmniFocusTransportTextParsingService"
+(*! @abstract <em>[text]</em> OmniFocusTransportTextParsingService's version. *)
 property version : "1.0.0"
-(*! @abstract <em>[text]</em> OFTransportTextParsingApplication's id. *)
-property id : "com.kraigparkinson.OFTransportTextParsingApplication"
+(*! @abstract <em>[text]</em> OmniFocusTransportTextParsingService's id. *)
+property id : "com.kraigparkinson.OmniFocusTransportTextParsingService"
 
 property textutil : script "com.kraigparkinson/ASText"
 property dateutil : script "com.kraigparkinson/ASDate"
@@ -48,7 +48,7 @@ end script
 
 script ContainsProjectNameSpecification
 	property parent : ddd's specification
-
+	
 	on isSatisfiedBy(obj)
 		set theTransportText to obj as text
 		return hasAProjectDelimeter(theTransportText)
@@ -61,31 +61,31 @@ end script
 
 script ContainsValidProjectInTransportTextSpecification
 	property parent : ContainsProjectNameSpecification
-
+	
 	on isSatisfiedBy(obj)
 		if (continue isSatisfiedBy(obj)) then
 			set theTransportText to obj as text
-
+			
 			if (isALegitimateProject(theTransportText)) then
 				return true
-			else 
+			else
 				return false
-			end if		
-		else 
+			end if
+		else
 			return false
-		end if 
+		end if
 	end isSatisfiedBy
 	
 	on isALegitimateProject(transportText)
 		set transportTextElements to textutil's getTextElements(transportText, PROJECT_DELIM)
-
+		
 		set projectNameSegment to item 2 of transportTextElements
-
+		
 		--Might have other task elements coming after that
 		set projectNameElements to textutil's getTextElements(projectNameSegment, {CONTEXT_DELIM, DATE_DELIM, ESTIMATE_DELIM, NOTE_DELIM})
 		set projectName to item 1 of projectNameElements
 		
-		return (domain's ProjectRepository's findByName(projectName) is not missing value)		
+		return (domain's ProjectRepository's findByName(projectName) is not missing value)
 	end isALegitimateProject
 end script
 
@@ -100,31 +100,31 @@ end script
 
 script ContainsValidContextInTransportTextSpecification
 	property parent : ContainsContextNameSpecification
-
+	
 	on isSatisfiedBy(obj)
 		if (continue isSatisfiedBy(obj)) then
 			set theTransportText to obj as text
-
+			
 			if (isALegitimateContext(theTransportText)) then
 				return true
-			else 
+			else
 				return false
-			end if		
-		else 
+			end if
+		else
 			return false
-		end if 
+		end if
 	end isSatisfiedBy
 	
 	on isALegitimateContext(transportText)
 		set transportTextElements to textutil's getTextElements(transportText, CONTEXT_DELIM)
-
+		
 		set contextNameSegment to item 2 of transportTextElements
-
+		
 		--Might have other task elements coming after that
 		set contextNameElements to textutil's getTextElements(contextNameSegment, {DATE_DELIM, ESTIMATE_DELIM, NOTE_DELIM})
 		set contextName to item 1 of contextNameElements
 		
-		return (domain's ContextRepository's findByName(contextName) is not missing value)		
+		return (domain's ContextRepository's findByName(contextName) is not missing value)
 	end isALegitimateContext
 end script
 
@@ -164,11 +164,11 @@ script ContainsNoteSpecification
 	end isSatisfiedBy
 end script
 
-script Expression 
+script Expression
 	property spec : missing value
 	on makeExpression()
 		copy me to newExpression
-		tell newExpression to defineSpecification() 
+		tell newExpression to defineSpecification()
 		return newExpression
 	end makeExpression
 	
@@ -179,22 +179,22 @@ script Expression
 			set transportText to name of aTask
 		end tell
 		
-		if (spec's isSatisfiedBy(transportText))
+		if (spec's isSatisfiedBy(transportText)) then
 			doInterpret(aTask)
 		end if
 	end interpret
-		
+	
 	on doInterpret(aTask)
 	end doInterpret
 end script
 
 script MacroExpression
 	property parent : Expression
-	property expressions : { }
+	property expressions : {}
 	
 	on defineSpecification()
 		script TrueSpecification
-			property parent : ddd's Specification
+			property parent : ddd's specification
 			on isSatisfiedBy(obj)
 				return true
 			end isSatisfiedBy
@@ -208,8 +208,8 @@ script MacroExpression
 	end addExpression
 	
 	on interpret(aTask)
-		repeat with expression in expressions
-			tell expression to interpret(aTask)
+		repeat with Expression in expressions
+			tell Expression to interpret(aTask)
 		end repeat
 	end interpret
 end script
@@ -219,8 +219,8 @@ script NameExpression
 	
 	on defineSpecification()
 		set my spec to ContainsTaskNameSpecification
-	end makeExpression
-
+	end defineSpecification
+	
 	on doInterpret(aTask)
 		set taskName to item 1 of textutil's getTextElements(transportText, {FLAG_DELIM, PROJECT_DELIM, CONTEXT_DELIM, DATE_DELIM, ESTIMATE_DELIM, NOTE_DELIM})
 		return {name:taskName}
@@ -233,8 +233,8 @@ script UnparsedTaskNameExpression
 	on defineSpecification()
 		continue defineSpecification()
 		set my spec to my spec's andSpec(ContainsUnparsedTaskNameSpecification)
-	end makeExpression
-
+	end defineSpecification
+	
 	on doInterpret(aTask)
 		local transportText
 		
@@ -243,10 +243,10 @@ script UnparsedTaskNameExpression
 		end tell
 		
 		set taskName to textutil's StringObj's makeString(transportText)'s removeText("--")'s asText()
-
+		
 		tell application "OmniFocus"
 			set aTask's name to taskName
-		end tell 
+		end tell
 		return aTask
 	end doInterpret
 end script
@@ -256,7 +256,7 @@ script FlagExpression
 	
 	on defineSpecification()
 		set my spec to ContainsFlagSpecification
-	end makeExpression
+	end defineSpecification
 	
 	on doInterpret(aTask)
 		local transportText
@@ -278,11 +278,11 @@ end script
 
 script AssignedContainerExpression
 	property parent : Expression
-
+	
 	on defineSpecification()
 		set my spec to ContainsValidProjectInTransportTextSpecification
-	end makeExpression
-
+	end defineSpecification
+	
 	on doInterpret(aTask)
 		local transportText
 		
@@ -291,15 +291,15 @@ script AssignedContainerExpression
 		end tell
 		
 		set transportTextElements to textutil's getTextElements(transportText, PROJECT_DELIM)
-
+		
 		set projectNameSegment to item 2 of transportTextElements
-
+		
 		--Might have other task elements coming after that
 		set projectNameElements to textutil's getTextElements(projectNameSegment, {CONTEXT_DELIM, DATE_DELIM, ESTIMATE_DELIM, NOTE_DELIM})
 		set projectName to item 1 of projectNameElements
 		
 		set aProject to domain's ProjectRepository's findByName(projectName)
-
+		
 		set taskName to textutil's StringObj's makeString(transportText)'s removeText(PROJECT_DELIM & projectName)
 		
 		tell application "OmniFocus"
@@ -315,7 +315,7 @@ script ContextExpression
 	
 	on defineSpecification()
 		set my spec to ContainsValidContextInTransportTextSpecification
-	end makeExpression
+	end defineSpecification
 	
 	on doInterpret(aTask)
 		local transportText
@@ -325,15 +325,15 @@ script ContextExpression
 		end tell
 		
 		set transportTextElements to textutil's getTextElements(transportText, CONTEXT_DELIM)
-
+		
 		set contextNameSegment to item 2 of transportTextElements
-
+		
 		--Might have other task elements coming after that
 		set contextNameElements to textutil's getTextElements(contextNameSegment, {DATE_DELIM, ESTIMATE_DELIM, NOTE_DELIM})
 		set contextName to item 1 of contextNameElements
-
+		
 		set aContext to my domain's ContextRepository's findByName(contextName)
-
+		
 		set taskName to textutil's StringObj's makeString(transportText)'s removeText(CONTEXT_DELIM & contextName)
 		
 		tell application "OmniFocus"
@@ -349,7 +349,7 @@ end script
 property TIME_DELIM : space & "at" & space
 
 on parseDueDate(dateText)
-	set dueDate to dateutil's CalendarDate's parse from dateText at defaultDueTime()
+	set dueDate to parse of (dateutil's CalendarDate) from dateText at defaultDueTime()
 	return dueDate's asDate()
 end parseDueDate
 
@@ -358,7 +358,7 @@ on defaultDueTime()
 end defaultDueTime
 
 on parseDeferDate(dateText)
-	set deferDate to dateutil's CalendarDate's parse from dateText at defaultDeferTime()
+	set deferDate to parse of (dateutil's CalendarDate) from dateText at defaultDeferTime()
 	return deferDate's asDate()
 end parseDeferDate
 
@@ -371,7 +371,7 @@ script DateExpression
 	
 	on defineSpecification()
 		set my spec to ContainsDueDateTextSpecification
-	end makeExpression
+	end defineSpecification
 	
 	on doInterpret(aTask)
 		local transportText
@@ -383,20 +383,20 @@ script DateExpression
 		local dueDateSegment
 		local deferDateSegment
 		local dateReplacementString
-		local aDeferDate 
+		local aDeferDate
 		local aDueDate
 		
 		set transportTextElements to textutil's getTextElements(transportText, DATE_DELIM)
-
+		
 		if (count of transportTextElements) is 2 then
 			--Assuming it comes after a task name being present (being item 1)
 			set aDeferDate to missing value
 			
 			set dueDateSegment to item 2 of transportTextElements
-	
+			
 			--Might have estimate mixed in with that
 			set dueDateElements to textutil's getTextElements(dueDateSegment, {DATE_DELIM, ESTIMATE_DELIM, NOTE_DELIM})
-	
+			
 			set dueDateSegment to item 1 of dueDateElements
 			set aDueDate to parseDueDate(dueDateSegment)
 			
@@ -406,16 +406,16 @@ script DateExpression
 			--Defer date
 			set deferDateSegment to item 2 of transportTextElements
 			set aDeferDate to parseDeferDate(deferDateSegment)
-		
+			
 			--Due date
 			set dueDateSegment to item 3 of transportTextElements
-	
+			
 			--Might have estimate mixed in with that
 			set dueDateElements to textutil's getTextElements(dueDateSegment, {DATE_DELIM, ESTIMATE_DELIM, NOTE_DELIM})
-	
+			
 			set dueDateSegment to item 1 of dueDateElements
 			set aDueDate to parseDueDate(dueDateSegment)
-
+			
 			set dateReplacementString to DATE_DELIM & deferDateSegment & DATE_DELIM & dueDateSegment
 		end if
 		
@@ -426,16 +426,16 @@ script DateExpression
 			if aDueDate is not missing value then set due date of aTask to aDueDate
 			
 			set name of aTask to taskName's asText()
-		end tell		
+		end tell
 	end doInterpret
-end script 
+end script
 
 script DeferDateExpression
 	property parent : Expression
 	
 	on defineSpecification()
 		set my spec to ContainsDeferDateTextSpecification
-	end makeExpression
+	end defineSpecification
 	
 	on doInterpret(aTask)
 		local transportText
@@ -445,9 +445,9 @@ script DeferDateExpression
 		end tell
 		
 		set transportTextElements to textutil's getTextElements(transportText, DATE_DELIM)
-	
+		
 		set deferDateSegment to item 2 of transportTextElements
-
+		
 		set aDeferDate to parseDeferDate(deferDateSegment)
 		
 		set taskName to textutil's StringObj's makeString(transportText)'s removeText(DATE_DELIM & deferDateSegment)
@@ -464,7 +464,7 @@ script DueDateExpression
 	
 	on defineSpecification()
 		set my spec to ContainsDueDateTextSpecification
-	end makeExpression
+	end defineSpecification
 	
 	on doInterpret(aTask)
 		local transportText
@@ -475,24 +475,24 @@ script DueDateExpression
 		
 		local dueDateSegment
 		set transportTextElements to textutil's getTextElements(transportText, DATE_DELIM)
-
+		
 		if (count of transportTextElements) is 2 then
 			--Assuming it comes after a task name being present (being item 1)
 			set dueDateSegment to item 2 of transportTextElements
-	
+			
 			--Might have estimate mixed in with that
 			set dueDateElements to textutil's getTextElements(dueDateSegment, {DATE_DELIM, ESTIMATE_DELIM, NOTE_DELIM})
-	
+			
 			set dueDateSegment to item 1 of dueDateElements
 		else if (count of transportTextElements) is 3 then
 			set dueDateSegment to item 3 of transportTextElements
-	
+			
 			--Might have estimate mixed in with that
 			set dueDateElements to textutil's getTextElements(dueDateSegment, {DATE_DELIM, ESTIMATE_DELIM, NOTE_DELIM})
-	
+			
 			set dueDateSegment to item 1 of dueDateElements
 		end if
-
+		
 		set aDueDate to parseDueDate(dueDateSegment)
 		
 		set taskName to textutil's StringObj's makeString(transportText)'s removeText(DATE_DELIM & dueDateSegment)
@@ -512,7 +512,7 @@ script EstimateExpression
 	
 	on defineSpecification()
 		set my spec to ContainsEstimateSpecification
-	end makeExpression
+	end defineSpecification
 	
 	on doInterpret(aTask)
 		local transportText
@@ -522,20 +522,20 @@ script EstimateExpression
 		end tell
 		
 		local theEstimate
-
+		
 		set transportTextElements to textutil's getTextElements(transportText, ESTIMATE_DELIM)
-
+		
 		set estimateSegment to item 2 of transportTextElements
-
+		
 		set estimateElements to textutil's getTextElements(estimateSegment, NOTE_DELIM)
 		set theEstimate to item 1 of estimateElements
-
+		
 		if length of theEstimate is equal to 1 then
 			set estimatedMinutes to theEstimate as integer
 		else if length of theEstimate is greater than 1 then
 			set estimateText to text 1 thru ((length of theEstimate) - 1) of theEstimate
 			set estimatedMinutes to estimateText as integer
-
+			
 			if (theEstimate contains "h") then
 				set estimatedMinutes to estimatedMinutes * 60
 			else if (theEstimate contains "d") then
@@ -544,7 +544,7 @@ script EstimateExpression
 				set estimatedMinutes to estimatedMinutes * 60 * 24 * 7
 			end if
 		end if
-
+		
 		set taskName to textutil's StringObj's makeString(transportText)'s removeText(ESTIMATE_DELIM & theEstimate)
 		
 		tell application "OmniFocus"
@@ -562,7 +562,7 @@ script NoteExpression
 	
 	on defineSpecification()
 		set my spec to ContainsNoteSpecification
-	end makeExpression
+	end defineSpecification
 	
 	on doInterpret(aTask)
 		local aNoteSegment
@@ -570,12 +570,12 @@ script NoteExpression
 		
 		local taskName
 		
-		tell application "OmniFocus" 
+		tell application "OmniFocus"
 			set taskName to aTask's name
 		end tell
 		
 		set transportTextElements to textutil's getTextElements(taskName, NOTE_DELIM)
-
+		
 		if (count of transportTextElements) is 2 then
 			set aNoteSegment to item 2 of transportTextElements
 		else
@@ -589,7 +589,8 @@ script NoteExpression
 				set the text of the note of aTask to aNoteSegment
 			else
 				--Append to existing note
-				set the text of the note of aTask to text of the note of aTask & "\n" & aNoteSegment
+				set the text of the note of aTask to text of the note of aTask & "
+" & aNoteSegment
 			end if
 			
 			set aTask's name to revisedTaskName
@@ -599,11 +600,11 @@ script NoteExpression
 	end doInterpret
 end script
 
-script TransportText
+script transportText
 	property textValue : missing value
 	
 	on makeTransportText(textValue)
-		copy TransportText to aText
+		copy transportText to aText
 		set aText's textValue to textValue
 		return aText
 	end makeTransportText
@@ -642,7 +643,7 @@ script TransportText
 end script
 
 script TransportTextEvaluator
-	property transportTextItems : { }
+	property transportTextItems : {}
 	(*
 	type = Expression
 	*)
@@ -667,9 +668,9 @@ script TransportTextEvaluator
 	(* 
 	@post returns boolean
 	*)
-	on interpret(aTask)			
-		return syntaxTree's interpret(aTask)		
-	end interpret	
+	on interpret(aTask)
+		return syntaxTree's interpret(aTask)
+	end interpret
 end script
 
 script OmniFocusTransportTextParsingRule
@@ -687,7 +688,7 @@ script OmniFocusTransportTextParsingRule
 		script EvaluatorCommand
 			property parent : domain's TaskCommand
 			
-			on execute(aTask)
+			on execute (aTask)
 				set evaluator to TransportTextEvaluator's anotherEvaluator()
 				tell evaluator to interpret(aTask)
 			end execute
@@ -695,5 +696,5 @@ script OmniFocusTransportTextParsingRule
 		
 		tell aRule to addAction(EvaluatorCommand)
 		return aRule
-	end constructRule	
-end script 
+	end constructRule
+end script

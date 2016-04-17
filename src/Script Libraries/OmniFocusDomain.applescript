@@ -59,7 +59,6 @@ script AbstractRepeatDeferCommand
 	on execute(aTask)
 		tell application "OmniFocus"
 			set newRepetitionRule to my repetitionRule
-			log "made a repetition rule"
 			
 			set aTask's repetition rule to newRepetitionRule
 --			set aTask's repetition to { unit:day, steps:2, fixed:false }
