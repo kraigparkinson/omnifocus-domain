@@ -167,6 +167,7 @@ script BuildTests
 	
 	makeScriptBundle from "test/Test OmniFocusDomain.applescript" at "test" with overwriting
 	makeScriptBundle from "test/Test OmniFocusTransportTextParsingService.applescript" at "test" with overwriting
+	makeScriptBundle from "test/Test OmniFocusTransportTextTokenizer.applescript" at "test" with overwriting
 end script
 
 script RunTests
@@ -181,6 +182,9 @@ script RunTests
 	run testSuite	
 
 	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test OmniFocusTransportTextParsingService.scptd"))
+	run testSuite
+
+	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test OmniFocusTransportTextTokenizer.scptd"))
 	run testSuite
 	
 end script

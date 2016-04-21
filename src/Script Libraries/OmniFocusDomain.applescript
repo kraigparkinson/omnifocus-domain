@@ -5,6 +5,8 @@ property version : "1.0.0"
 (*! @abstract <em>[text]</em> OmniFocusDomain's id. *)
 property id : "com.kraigparkinson.OmniFocusDomain"
 
+property textutil : script "com.kraigparkinson/ASText"
+property dateutil : script "com.kraigparkinson/ASDate"
 property ddd : script "com.kraigparkinson/ASDomainDrivenDesign"
 
 script TaskCommand
@@ -36,6 +38,27 @@ script MarkCompleteCommand
 			set aTask's completed to true
 		end tell
 	end execute
+end script
+
+script AppendNoteCommand
+	property parent : TaskCommand
+
+	on execute(aTask)
+		set additionalNoteText to defineNote()
+
+		tell application "OmniFocus"
+			if text of the note of aTask is "" then
+				set the text of the note of aTask to additionalNoteText
+			else
+				--Append to existing note
+				set the text of the note of aTask to text of the note of aTask & return & additionalNoteText
+			end if			
+		end tell
+	end execute
+	
+	on defineNote()
+		return ""
+	end defineNote
 end script
 
 
@@ -94,8 +117,88 @@ script RepeatDeferDailyCommand
 	end execute
 end script
 
+script FlaggedSpecification
+	property parent : ddd's AbstractSpecification
+	
+	on isSatisfiedBy(aTask)
+		tell application "OmniFocus"
+			return (aTask's flagged)
+		end tell
+	end isSatisfiedBy
+end script
+
+script TaskHasProjectSpecification
+	property parent : ddd's AbstractSpecification
+	
+	on isSatisfiedBy(obj)
+		tell application "OmniFocus"
+			return (aTask's project is not missing value)
+		end tell
+	end isSatisfiedBy
+end script
+
+script TaskHasAssignedContainerSpecification
+	property parent : ddd's AbstractSpecification
+	
+	on isSatisfiedBy(obj)
+		tell application "OmniFocus"
+			return (aTask's assigned container is not missing value)
+		end tell
+	end isSatisfiedBy
+end script
+
+script TaskHasContextSpecification
+	property parent : ddd's AbstractSpecification
+
+	on isSatisfiedBy(aTask)
+		tell application "OmniFocus"
+			return (aTask's context is not missing value)
+		end tell
+	end isSatisfiedBy
+end script
+
+script ContainsDeferDateSpecification
+	property parent : ddd's AbstractSpecification
+	
+	on isSatisfiedBy(aTask)
+		tell application "OmniFocus"
+			return (aTask's defer date is not missing value)
+		end tell
+	end isSatisfiedBy
+end script
+
+script ContainsDueDateSpecification
+	property parent : ddd's AbstractSpecification
+	
+	on isSatisfiedBy(aTask)
+		tell application "OmniFocus"
+			return (aTask's due date is not missing value)
+		end tell
+	end isSatisfiedBy
+end script
+
+script ContainsEstimateSpecification
+	property parent : ddd's AbstractSpecification
+	
+	on isSatisfiedBy(aTask)
+		tell application "OmniFocus"
+			return (aTask's estimated minutes is not missing value)
+		end tell
+	end isSatisfiedBy
+end script
+
+script ContainsNoteSpecification
+	property parent : ddd's AbstractSpecification
+	
+	on isSatisfiedBy(aTask)
+		tell application "OmniFocus"
+			return (aTask's note is not missing value)
+		end tell
+	end isSatisfiedBy
+end script
+
 script MatchingNameTaskSpecification
-	property parent : ddd's Specification
+	property parent : ddd's AbstractSpecification
 	property aName : missing value
 	
 	on isSatisfiedBy(aTask)
@@ -106,7 +209,7 @@ script MatchingNameTaskSpecification
 end script 
 
 script UnparsedTaskSpecification
-	property parent : ddd's specification
+	property parent : ddd's AbstractSpecification
 	
 	on isSatisfiedBy(aTask)
 		tell application "OmniFocus"
@@ -116,7 +219,7 @@ script UnparsedTaskSpecification
 end script
 
 script NonrepeatingTaskSpecification
-	property parent : ddd's specification
+	property parent : ddd's AbstractSpecification
 	
 	on isSatisfiedBy(aTask)
 		tell application "OmniFocus"
@@ -285,3 +388,4 @@ script ProjectRepository
 		return theProject
 	end findProjectFromName
 end script
+
