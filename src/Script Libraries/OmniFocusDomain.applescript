@@ -329,12 +329,6 @@ script NonrepeatingTaskSpecification
 end script
 
 script TaskRepository
-	on selectUnparsedTasksFromInbox()
-		set spec to UnparsedTaskSpecification
-		
-		return selectInboxTasks(spec)
-	end selectUnparsedTasksFromInbox
-	
 	on selectUserSpecifiedTasks()
 		tell application "OmniFocus"
 			tell content of first document window of front document
@@ -346,16 +340,24 @@ script TaskRepository
 	on selectInboxTasks(spec)
 		set inboxItems to selectAllInboxTasks()
 		
-		set inboxItemsRef to reference to inboxItems
+--		set inboxItemsRef to reference to inboxItems
 		
 		set matchingItems to { }
-		repeat with currentTask in inboxItemsRef
+		
+--		repeat with currentTask in inboxItemsRef
+		repeat with currentTask in inboxItems
 			if spec's isSatisfiedBy(currentTask) then 
-				set end of matchingItems to currentTask
+			--	set end of matchingItems to currentTask
+				set matchingItems to matchingItems & { currentTask } 
 			end if
 		end repeat
-		return matchingItems
-	end selectAllInboxTasks
+		
+		if (count of matchingItems > 0) then
+			return matchingItems
+		else 
+			return { }
+		end 
+	end selectInboxTasks
 	
 	on selectAllInboxTasks()
 		tell application "OmniFocus"
