@@ -6,3 +6,13 @@ build/DateFormatter.scptd/Contents/Resources/Scripts/main.scpt
 build/OFTaskParser.scptd/Contents/Resources/Scripts/main.scpt
 
 *.scpt
+
+.idea/compiler.xml
+
+.idea/copyright/profiles_settings.xml
+
+.idea/misc.xml
+
+.idea/workspace.xml
+
+.DS_Store

@@ -92,7 +92,9 @@ on TaskNameExpression()
 			set taskNameToken to ttVariables's getValue(TransportTextTokenTypeEnum's NAME_TYPE)
 
 			tell application "OmniFocus"
-				set aTask's name to taskNameToken
+				with timeout of 3 seconds
+					set aTask's name to taskNameToken
+				end timeout
 			end tell
 
 			return missing value
@@ -110,7 +112,10 @@ on FlaggedExpression()
 			set flaggedToken to ttVariables's getValue(TransportTextTokenTypeEnum's FLAG_TYPE)
 			
 			tell application "OmniFocus"
-				set aTask's flagged to true
+				with timeout of 3 seconds
+				
+					set aTask's flagged to true
+				end timeout
 			end tell
 			
 			return missing value
@@ -129,6 +134,8 @@ on AssignedContainerNameExpression()
 			set ttRemainder to missing value 
 			
 			tell application "OmniFocus"
+				with timeout of 3 seconds
+				
 				set aProject to domain's ProjectRepository's findByName(projectToken)
 				
 				if (aProject is missing value) then 						
@@ -138,6 +145,8 @@ on AssignedContainerNameExpression()
 						set aTask's assigned container to aProject
 					end if
 				end if
+				
+				end timeout
 			end tell
 			
 			return ttRemainder		
@@ -156,6 +165,8 @@ on ContextNameExpression()
 			set ttRemainder to missing value
 			
 			tell application "OmniFocus"
+				with timeout of 3 seconds
+				
 				set aContext to domain's ContextRepository's findByName(contextToken)
 
 				if (aContext is missing value)
@@ -165,6 +176,8 @@ on ContextNameExpression()
 						set aTask's context to aContext
 					end if
 				end if
+				
+				end timeout
 			end tell
 			
 			return ttRemainder
@@ -184,11 +197,15 @@ on DueDateExpression()
 			set dueDate to parse of (dateutil's CalendarDate) from aDueDateExpression at defaultDueTime()
 					
 			tell application "OmniFocus"
+				with timeout of 3 seconds
+				
 				if (aTask's due date is missing value) then 
 					
 					set aTask's due date to dueDate's asDate()
 --					set aTask's due date to my parseDueDate(aDueDateExpression)
 				end if
+				
+				end timeout
 			end tell
 			
 			return missing value
@@ -205,9 +222,13 @@ on DeferDateExpression()
 			set aDeferDateExpression to ttVariables's getValue(TransportTextTokenTypeEnum's DEFER_DATE_TYPE)
 			
 			tell application "OmniFocus"
+				with timeout of 3 seconds
+				
 				if (aTask's defer date is missing value) then
 					set aTask's defer date to my parseDeferDate(aDeferDateExpression)
 				end if
+				
+				end timeout
 			end tell
 			
 			return missing value
@@ -224,9 +245,13 @@ on EstimateExpression()
 			set anEstimateExpression to ttVariables's getValue(TransportTextTokenTypeEnum's ESTIMATE_TYPE)
 
 			tell application "OmniFocus"
+				with timeout of 3 seconds
+				
 				if (aTask's estimated minutes is missing value) then 
 					set aTask's estimated minutes to my parseEstimate(anEstimateExpression)
 				end if
+				
+				end timeout
 			end tell
 			return missing value
 		end interpret
@@ -370,6 +395,8 @@ script DefaultInterpreter
 	on update(aTask)
 		
 		tell application "OmniFocus"
+			with timeout of 3 seconds
+			
 			set taskName to aTask's name
 
 			if (taskName starts with "--")
@@ -378,6 +405,8 @@ script DefaultInterpreter
 
 				delete aTask
 			end if
+			
+			end timeout
 		end tell
 	end update
 end script
@@ -388,7 +417,11 @@ script CustomInterpreter
 	on update(aTask)
 		
 		tell application "OmniFocus"
+			with timeout of 3 seconds
+			
 			set transportText to aTask's name
+			
+			end timeout
 		end tell
 
 		set variables to parseTransportTextIntoVariables(transportText)

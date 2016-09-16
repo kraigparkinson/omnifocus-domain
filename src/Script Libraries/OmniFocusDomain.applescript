@@ -5,11 +5,14 @@ property version : "1.0.0"
 (*! @abstract <em>[text]</em> OmniFocusDomain's id. *)
 property id : "com.kraigparkinson.OmniFocusDomain"
 
-property textutil : script "com.kraigparkinson/ASText"
-property dateutil : script "com.kraigparkinson/ASDate"
 property ddd : script "com.kraigparkinson/ASDomainDrivenDesign"
 
 script TaskCommand
+	on make new TaskCommand with properties commandProperties as record : {}
+		copy me to aCommand
+		return aCommand
+	end make
+
 	on constructCommand()
 		copy me to aCommand
 		return aCommand
@@ -23,6 +26,7 @@ end script
 script MacroTaskCommand
 	property parent : TaskCommand
 	property commands : { }
+	
 	on execute(aTask)
 		repeat with command in commands
 			tell command to execute(aTask)
@@ -32,10 +36,13 @@ end script
 
 script MarkCompleteCommand
 	property parent : TaskCommand
+	property name : "Mark complete"
 
 	on execute(aTask)
 		tell application "OmniFocus"
-			set aTask's completed to true
+			with timeout of 3 seconds			
+				set aTask's completed to true
+			end timeout
 		end tell
 	end execute
 end script
@@ -47,12 +54,15 @@ script AppendNoteCommand
 		set additionalNoteText to defineNote()
 
 		tell application "OmniFocus"
-			if text of the note of aTask is "" then
-				set the text of the note of aTask to additionalNoteText
-			else
-				--Append to existing note
-				set the text of the note of aTask to text of the note of aTask & return & additionalNoteText
-			end if			
+			with timeout of 3 seconds
+			
+				if text of the note of aTask is "" then
+					set the text of the note of aTask to additionalNoteText
+				else
+					--Append to existing note
+					set the text of the note of aTask to text of the note of aTask & return & additionalNoteText
+				end if			
+			end timeout
 		end tell
 	end execute
 	
@@ -81,10 +91,13 @@ script AbstractRepeatDeferCommand
 	
 	on execute(aTask)
 		tell application "OmniFocus"
-			set newRepetitionRule to my repetitionRule
+			with timeout of 3 seconds
 			
-			set aTask's repetition rule to newRepetitionRule
---			set aTask's repetition to { unit:day, steps:2, fixed:false }
+				set newRepetitionRule to my repetitionRule
+			
+				set aTask's repetition rule to newRepetitionRule
+	--			set aTask's repetition to { unit:day, steps:2, fixed:false }
+			end timeout
 		end tell
 	end execute
 end script
@@ -98,101 +111,173 @@ script RepeatDeferWeeklyCommand
 	
 	on addRepetitionMethod()
 		tell application "OmniFocus"
-			set my repetitionRule to my repetitionRule & { repetition method:start after completion }
+			with timeout of 3 seconds
+			
+				set my repetitionRule to my repetitionRule & { repetition method:start after completion }
+			end timeout
 		end tell
 	end addRepetitionMethod	
 end script
 
-script RepeatDeferDailyCommand
+script DeferAnotherDayCommand
 	property parent : TaskCommand
 	
 	on execute(aTask)
 		tell application "OmniFocus"
-			set newRepetitionRule to {repetition method:start after completion, recurrence:"FREQ=DAILY"}
-			log "made a repetition rule"
+			with timeout of 3 seconds
 			
-			set aTask's repetition rule to newRepetitionRule
---			set aTask's repetition to { unit:day, steps:2, fixed:false }
+				set newRepetitionRule to {repetition method:start after completion, recurrence:"FREQ=DAILY"}
+				log "made a repetition rule"
+			
+				set aTask's repetition rule to newRepetitionRule
+	--			set aTask's repetition to { unit:day, steps:2, fixed:false }
+			end timeout
+		end tell
+	end execute
+end script
+
+script DueAgainDailyCommand
+	property parent : TaskCommand
+	
+	on execute(aTask)
+		tell application "OmniFocus"
+			with timeout of 3 seconds
+			
+				set newRepetitionRule to {repetition method:due after completion, recurrence:"FREQ=DAILY"}
+				log "made a repetition rule"
+			
+				set aTask's repetition rule to newRepetitionRule
+	--			set aTask's repetition to { unit:day, steps:2, fixed:false }
+			end timeout
+		end tell
+	end execute
+end script
+
+script RepeatEveryDayCommand
+	property parent : TaskCommand
+	
+	on execute(aTask)
+		tell application "OmniFocus"
+			with timeout of 3 seconds
+			
+				set newRepetitionRule to {repetition method:fixed repetition, recurrence:"FREQ=DAILY"}
+				log "made a repetition rule"
+			
+				set aTask's repetition rule to newRepetitionRule
+	--			set aTask's repetition to { unit:day, steps:2, fixed:false }
+			end timeout
 		end tell
 	end execute
 end script
 
 script FlaggedSpecification
 	property parent : ddd's AbstractSpecification
+	property name : "flagged"
 	
 	on isSatisfiedBy(aTask)
 		tell application "OmniFocus"
-			return (aTask's flagged)
+			with timeout of 3 seconds
+				return (aTask's flagged)
+			end timeout
 		end tell
 	end isSatisfiedBy
 end script
 
 script TaskHasProjectSpecification
 	property parent : ddd's AbstractSpecification
+	property name : "has project"
 	
 	on isSatisfiedBy(obj)
 		tell application "OmniFocus"
-			return (aTask's project is not missing value)
+			with timeout of 3 seconds
+			
+				return (aTask's project is not missing value)
+			end timeout
 		end tell
 	end isSatisfiedBy
 end script
 
 script TaskHasAssignedContainerSpecification
 	property parent : ddd's AbstractSpecification
+	property name : "has assignd container"
 	
 	on isSatisfiedBy(obj)
 		tell application "OmniFocus"
-			return (aTask's assigned container is not missing value)
+			with timeout of 3 seconds
+			
+				return (aTask's assigned container is not missing value)
+			end timeout
 		end tell
 	end isSatisfiedBy
 end script
 
 script TaskHasContextSpecification
 	property parent : ddd's AbstractSpecification
+	property name : "has context"
 
 	on isSatisfiedBy(aTask)
 		tell application "OmniFocus"
-			return (aTask's context is not missing value)
+			with timeout of 3 seconds
+			
+				return (aTask's context is not missing value)
+			
+			end timeout
 		end tell
 	end isSatisfiedBy
 end script
 
 script ContainsDeferDateSpecification
 	property parent : ddd's AbstractSpecification
+	property name : "has defer date"
 	
 	on isSatisfiedBy(aTask)
 		tell application "OmniFocus"
-			return (aTask's defer date is not missing value)
+			with timeout of 3 seconds
+				return (aTask's defer date is not missing value)
+			end timeout
 		end tell
 	end isSatisfiedBy
 end script
 
 script ContainsDueDateSpecification
 	property parent : ddd's AbstractSpecification
+	property name : "has due date"
 	
 	on isSatisfiedBy(aTask)
 		tell application "OmniFocus"
-			return (aTask's due date is not missing value)
+			with timeout of 3 seconds
+			
+				return (aTask's due date is not missing value)
+			
+			end timeout
 		end tell
 	end isSatisfiedBy
 end script
 
 script ContainsEstimateSpecification
 	property parent : ddd's AbstractSpecification
+	property name : "has estimatee"
 	
 	on isSatisfiedBy(aTask)
 		tell application "OmniFocus"
-			return (aTask's estimated minutes is not missing value)
+			with timeout of 3 seconds
+			
+				return (aTask's estimated minutes is not missing value)
+			end timeout
 		end tell
 	end isSatisfiedBy
 end script
 
 script ContainsNoteSpecification
 	property parent : ddd's AbstractSpecification
+	property name : "has note"
 	
 	on isSatisfiedBy(aTask)
 		tell application "OmniFocus"
-			return (aTask's note is not missing value)
+			with timeout of 3 seconds
+			
+				return (aTask's note is not missing value)
+			end timeout
 		end tell
 	end isSatisfiedBy
 end script
@@ -200,30 +285,45 @@ end script
 script MatchingNameTaskSpecification
 	property parent : ddd's AbstractSpecification
 	property aName : missing value
+	property name : "matches task name"
 	
 	on isSatisfiedBy(aTask)
 		tell application "OmniFocus"
-			return name of aTask equals aName
+			with timeout of 3 seconds
+			
+				return name of aTask equals aName
+			
+			end timeout
 		end tell
 	end isSatisfiedBy
 end script 
 
 script UnparsedTaskSpecification
 	property parent : ddd's AbstractSpecification
+	property name : "unparsed"
 	
 	on isSatisfiedBy(aTask)
 		tell application "OmniFocus"
-			return (name of aTask) starts with "--"
+			with timeout of 3 seconds
+			
+				return (name of aTask) starts with "--"
+			
+			end timeout
 		end tell
 	end isSatisfiedBy
 end script
 
 script NonrepeatingTaskSpecification
 	property parent : ddd's AbstractSpecification
+	property name : "not repeating"
 	
 	on isSatisfiedBy(aTask)
 		tell application "OmniFocus"
+			with timeout of 3 seconds
+			
 			return aTask's repetition rule is missing value
+			
+			end timeout
 		end tell
 	end isSatisfiedBy
 end script
@@ -245,8 +345,11 @@ script TaskRepository
 	
 	on selectInboxTasks(spec)
 		set inboxItems to selectAllInboxTasks()
+		
+		set inboxItemsRef to reference to inboxItems
+		
 		set matchingItems to { }
-		repeat with currentTask in inboxItems
+		repeat with currentTask in inboxItemsRef
 			if spec's isSatisfiedBy(currentTask) then 
 				set end of matchingItems to currentTask
 			end if
@@ -256,19 +359,25 @@ script TaskRepository
 	
 	on selectAllInboxTasks()
 		tell application "OmniFocus"
+			with timeout of 3 seconds
+			
 			tell front document
 				set inboxItems to every inbox task
 				return inboxItems
 			end tell
+			end timeout
 		end tell
 	end selectAllInboxTasks
 
 	on selectAll()
 		tell application "OmniFocus"
+			with timeout of 3 seconds
+			
 			tell front document
 				set inboxItems to tasks
 				return inboxItems
 			end tell
+			end timeout
 		end tell
 	end selectAll
 	
@@ -279,27 +388,37 @@ script TaskRepository
 	*)
 	on createFromTransportText(transportText)
 		tell application "OmniFocus"
-			return parse tasks into default document with transport text transportText with as single task
+			with timeout of 3 seconds
+			
+				return parse tasks into default document with transport text transportText with as single task
+			end timeout
 		end tell
 	end create
 
 	on createInboxTaskWithName(taskName)
 		tell application "OmniFocus"
+			with timeout of 3 seconds
+			
 			tell default document
 --				tell quick entry
 					return make new inbox task with properties {name:taskName}
 --				end tell
 			end tell
+			
+			end timeout
 		end tell
 	end createInboxTaskWithName
 	
 	on createInboxTaskWithProperties(taskProperties)
 		tell application "OmniFocus"
-			tell default document
---				tell quick entry
-					return make new inbox task with properties taskProperties
---				end tell
-			end tell
+			with timeout of 3 seconds
+			
+				tell default document
+	--				tell quick entry
+						return make new inbox task with properties taskProperties
+	--				end tell
+				end tell
+			end timeout
 		end tell
 	end createInboxTaskWithProperties
 	
@@ -310,9 +429,11 @@ script ContextRepository
 		local newContext
 	
 		tell application "OmniFocus"
-			tell default document
-				set newContext to make new context with properties {name:contextName}
-			end tell
+			with timeout of 3 seconds
+				tell default document
+					set newContext to make new context with properties {name:contextName}
+				end tell
+			end timeout
 		end tell
 	
 		if newContext is equal to missing value then
@@ -325,9 +446,13 @@ script ContextRepository
 		local newContext
 	
 		tell application "OmniFocus"
+			with timeout of 3 seconds
+			
 			tell default document
 				set newContext to make new context at parentContext with properties {name:contextName}
 			end tell
+			
+			end timeout
 		end tell
 	
 		if newContext is equal to missing value then
@@ -343,6 +468,7 @@ script ContextRepository
 		local theContext
 	
 		tell front document of application "OmniFocus"
+			with timeout of 3 seconds
 		
 			set thePossibleContexts to complete contextName as context maximum matches 1
 			if ((count of thePossibleContexts) is equal to 1) then
@@ -351,21 +477,46 @@ script ContextRepository
 			else
 				set theContext to missing value
 			end if
-		
+		end timeout
 		end tell
 	
 		return theContext
 	end findByName
 end script
 
+script SetContextCommand
+	property parent : TaskCommand
+	property contextName : missing value
+	property name : "Set context"
+	
+	on execute(aTask)
+		set aContext to ContextRepository's findByName(contextName)
+		if (aContext is missing value) then 
+			error "Context, " & contextName & ", not found"
+		else
+			log "Found context: " & contextName
+		end if
+
+		tell application "OmniFocus"
+			with timeout of 3 seconds			
+				set aTask's context to aContext
+			end timeout
+		end tell
+	end execute
+end script
+
+
 script ProjectRepository
 	on create(projectName)
 		local newProject
 	
 		tell application "OmniFocus"
+			with timeout of 3 seconds
+			
 			tell default document
 				set newProject to make new project with properties {name:projectName}
 			end tell
+		end timeout
 		end tell
 	
 		return newProject
@@ -375,6 +526,7 @@ script ProjectRepository
 		local theProject
 	
 		tell front document of application "OmniFocus"
+			with timeout of 3 seconds
 		
 			set thePossibleProjects to complete projectName as project maximum matches 1
 			if ((count of thePossibleProjects) is equal to 1) then
@@ -383,7 +535,7 @@ script ProjectRepository
 			else
 				set theProject to missing value
 			end if
-		
+		end timeout
 		end tell
 		return theProject
 	end findProjectFromName

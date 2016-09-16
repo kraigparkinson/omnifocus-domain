@@ -189,6 +189,18 @@ script RunTests
 	
 end script
 
+script deploy
+	property parent : Task(me)
+	property description : "Prepare a directory for deployment"
+	
+	property sourceDir : "build/OmniFocus Scripts"
+	property targetDirDir : "dist/OmniFocus Scripts"
+	
+	tell RunTests to exec:{}
+	
+	copyItems at sourceDir into targetDir with overwriting
+end script
+
 script uninstall
 	property parent : Task(me)
 	property dir : POSIX path of Â

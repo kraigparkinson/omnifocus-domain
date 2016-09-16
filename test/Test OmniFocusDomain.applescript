@@ -90,7 +90,7 @@ script |DeferDailyRuleCommand|
 		property parent : UnitTest(me)
 	
 		set aTask to createInboxTask("Foo")
-		set aCommand to domain's RepeatDeferDailyCommand's constructCommand()
+		set aCommand to domain's DeferAnotherDayCommand's constructCommand()
 		
 		tell aCommand to execute(aTask)
 		
