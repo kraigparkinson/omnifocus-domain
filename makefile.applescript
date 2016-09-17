@@ -163,7 +163,6 @@ script BuildTests
 	property description : "Build tests, but do not run them"
 	
 	owarn("Due to bugs in OS X Yosemite, building tests requires ASUnit to be installed.")
-	tell install to exec:{}
 	
 	makeScriptBundle from "test/Test OmniFocusDomain.applescript" at "test" with overwriting
 	makeScriptBundle from "test/Test OmniFocusTransportTextParsingService.applescript" at "test" with overwriting
