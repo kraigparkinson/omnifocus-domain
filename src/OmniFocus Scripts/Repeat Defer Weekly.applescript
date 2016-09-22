@@ -16,7 +16,7 @@ tell application "OmniFocus"
 		
 			repeat with selectedTask in validSelectedItemsList
 				set aCommand to domain's DeferAnotherPeriodCommand's constructCommand()
-				set aCommand's frequency to "DAILY"
+				set aCommand's frequency to "WEEKLY"
 				tell aCommand to execute(selectedTask)
 			end repeat
 		end tell

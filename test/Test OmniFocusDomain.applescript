@@ -86,20 +86,38 @@ script |DeferDailyRuleCommand|
 		return newTask 
 	end createInboxTask
 
-	script |test command works|
+	script |test daily defer works|
 		property parent : UnitTest(me)
 	
 		set aTask to createInboxTask("Foo")
-		set aCommand to domain's DeferAnotherDayCommand's constructCommand()
+		set aCommand to domain's DeferAnotherPeriodCommand's constructCommand()
+		set aCommand's frequency to "DAILY"
 		
 		tell aCommand to execute(aTask)
 		
 		tell application "OmniFocus"
 			my assertNotEqual(missing value, aTask's repetition rule)
-			
---			my assertEqual(start after completion, aTask's repetition rule's repetition method)
+--			my assertEqual("FREQ=DAILY", aTask's repetition rule's recurrence as text)
+--			my assert(start after completion is aTask's repetition rule's repetition method, "Should start after completion")
 		end tell
 	end script
+	
+	script |test weekly defer works|
+		property parent : UnitTest(me)
+	
+		set aTask to createInboxTask("Foo")
+		set aCommand to domain's DeferAnotherPeriodCommand's constructCommand()
+		set aCommand's frequency to "WEEKLY"
+		
+		tell aCommand to execute(aTask)
+		
+		tell application "OmniFocus"
+			my assertNotEqual(missing value, aTask's repetition rule)
+--			my assertEqual("FREQ=WEEKLY", aTask's repetition rule's recurrence as text)
+--			my assert(start after completion is aTask's repetition rule's repetition method, "Should start after completion")
+		end tell
+	end script
+	
 end script  
 
 script |OmniFocus Project Repository|

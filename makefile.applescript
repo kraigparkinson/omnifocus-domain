@@ -30,7 +30,7 @@ script BuildScriptLibrary
 	property description : "Build Script Libraries"
 	
 	property sourceDir : "src/Script Libraries/"
-	property destinationDir : "build/Script Libraries"
+	property destinationDir : "build/Script Libraries/com.kraigparkinson"
 
 	makeScriptBundle from joinPath(sourceDir, "OmniFocusDomain.applescript") at destinationDir with overwriting
 	makeScriptBundle from joinPath(sourceDir, "OmniFocusTransportTextParsingService.applescript") at destinationDir with overwriting
@@ -164,6 +164,7 @@ script BuildTests
 	
 	owarn("Due to bugs in OS X Yosemite, building tests requires ASUnit to be installed.")
 	
+	tell build to exec:{}
 	makeScriptBundle from "test/Test OmniFocusDomain.applescript" at "test" with overwriting
 	makeScriptBundle from "test/Test OmniFocusTransportTextParsingService.applescript" at "test" with overwriting
 	makeScriptBundle from "test/Test OmniFocusTransportTextTokenizer.applescript" at "test" with overwriting
