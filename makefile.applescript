@@ -44,6 +44,7 @@ script BuildOFApplicationScripts
 	property sourceDir : "src/OmniFocus Scripts/"
 	property destinationDir : "build/OmniFocus Scripts"
 
+	tell BuildScriptLibrary to exec:{}
 	makeScriptBundle from joinPath(sourceDir, "Repeat Defer Daily.applescript") at destinationDir with overwriting
 end script
 
