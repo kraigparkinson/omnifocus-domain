@@ -145,8 +145,8 @@ script installScriptLibraries
 	end installWithOverwriteAlert
 
 	tell BuildScriptLibrary to exec:{}
-	installWithOverwriteAlert("OmniFocusDomain", "com.kraigparkinson")
-	installWithOverwriteAlert("OmniFocusTransportTextParsingService", "com.kraigparkinson")
+	installWithOverwriteAlert("com.kraigparkinson/OmniFocusDomain", "com.kraigparkinson")
+	installWithOverwriteAlert("com.kraigparkinson/OmniFocusTransportTextParsingService", "com.kraigparkinson")
 end script
 
 script install
