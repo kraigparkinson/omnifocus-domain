@@ -46,6 +46,7 @@ script BuildOFApplicationScripts
 
 	tell BuildScriptLibrary to exec:{}
 	makeScriptBundle from joinPath(sourceDir, "Repeat Defer Daily.applescript") at destinationDir with overwriting
+	makeScriptBundle from joinPath(sourceDir, "Repeat Defer Weekly.applescript") at destinationDir with overwriting
 end script
 
 script build
@@ -129,6 +130,7 @@ script InstallOFApplicationScripts
 	
 	tell BuildOFApplicationScripts to exec:{}
 	installWithOverwriteAlert("Repeat Defer Daily", "")	
+	installWithOverwriteAlert("Repeat Defer Weekly", "")	
 end script
 
 script installScriptLibraries

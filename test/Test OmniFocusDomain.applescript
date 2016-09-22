@@ -90,13 +90,16 @@ script |DeferDailyRuleCommand|
 		property parent : UnitTest(me)
 	
 		set aTask to createInboxTask("Foo")
-		set aCommand to domain's DeferAnotherPeriodCommand's constructCommand()
+		set aCommand to domain's DeferAnotherCommand's constructCommand()
 		set aCommand's frequency to "DAILY"
 		
 		tell aCommand to execute(aTask)
 		
 		tell application "OmniFocus"
 			my assertNotEqual(missing value, aTask's repetition rule)
+			set expectedRepetitionRule to {repetition method:start after completion, recurrence:"FREQ=DAILY"}
+			my assertEqual(expectedRepetitionRule, aTask's repetition rule)
+			
 --			my assertEqual("FREQ=DAILY", aTask's repetition rule's recurrence as text)
 --			my assert(start after completion is aTask's repetition rule's repetition method, "Should start after completion")
 		end tell
@@ -106,15 +109,141 @@ script |DeferDailyRuleCommand|
 		property parent : UnitTest(me)
 	
 		set aTask to createInboxTask("Foo")
-		set aCommand to domain's DeferAnotherPeriodCommand's constructCommand()
+		set aCommand to domain's DeferAnotherCommand's constructCommand()
 		set aCommand's frequency to "WEEKLY"
 		
 		tell aCommand to execute(aTask)
 		
 		tell application "OmniFocus"
 			my assertNotEqual(missing value, aTask's repetition rule)
+			set expectedRepetitionRule to {repetition method:start after completion, recurrence:"FREQ=WEEKLY"}
+			my assertEqual(expectedRepetitionRule, aTask's repetition rule)
 --			my assertEqual("FREQ=WEEKLY", aTask's repetition rule's recurrence as text)
 --			my assert(start after completion is aTask's repetition rule's repetition method, "Should start after completion")
+		end tell
+	end script
+	
+end script  
+
+
+script |DueAgainCommand|
+	property parent : TestSet(me)
+	property taskList : missing value
+	
+	on setUp()
+		set taskList to { }
+	end setUp
+	
+	on tearDown()
+		repeat with aTask in taskList
+			tell application "OmniFocus"
+				try
+					delete aTask
+				on error errMsg number errNum
+					log "Error deleting task: " & errMsg & errNum & aTask
+					error errMsg number errNum
+				end try
+			end tell
+		end repeat
+	end tearDown
+	
+	on createInboxTask(transportText)
+		set newTask to domain's TaskRepository's createInboxTaskWithName(transportText)
+		set end of taskList to newTask		
+		return newTask 
+	end createInboxTask
+
+	script |test due again daily works|
+		property parent : UnitTest(me)
+	
+		set aTask to createInboxTask("Foo")
+		set aCommand to domain's DueAgainCommand's constructCommand()
+		set aCommand's frequency to "DAILY"
+		
+		tell aCommand to execute(aTask)
+		
+		tell application "OmniFocus"
+			my assertNotEqual(missing value, aTask's repetition rule)
+			set expectedRepetitionRule to {repetition method:due after completion, recurrence:"FREQ=DAILY"}
+			my assertEqual(expectedRepetitionRule, aTask's repetition rule)
+		end tell
+	end script
+	
+	script |test due again weekly works|
+		property parent : UnitTest(me)
+	
+		set aTask to createInboxTask("Foo")
+		set aCommand to domain's DueAgainCommand's constructCommand()
+		set aCommand's frequency to "WEEKLY"
+		
+		tell aCommand to execute(aTask)
+		
+		tell application "OmniFocus"
+			my assertNotEqual(missing value, aTask's repetition rule)
+			set expectedRepetitionRule to {repetition method:due after completion, recurrence:"FREQ=WEEKLY"}
+			my assertEqual(expectedRepetitionRule, aTask's repetition rule)
+		end tell
+	end script
+	
+end script  
+
+
+script |RepeatEveryPeriodCommand|
+	property parent : TestSet(me)
+	property taskList : missing value
+	
+	on setUp()
+		set taskList to { }
+	end setUp
+	
+	on tearDown()
+		repeat with aTask in taskList
+			tell application "OmniFocus"
+				try
+					delete aTask
+				on error errMsg number errNum
+					log "Error deleting task: " & errMsg & errNum & aTask
+					error errMsg number errNum
+				end try
+			end tell
+		end repeat
+	end tearDown
+	
+	on createInboxTask(transportText)
+		set newTask to domain's TaskRepository's createInboxTaskWithName(transportText)
+		set end of taskList to newTask		
+		return newTask 
+	end createInboxTask
+
+	script |repeat daily|
+		property parent : UnitTest(me)
+	
+		set aTask to createInboxTask("Foo")
+		set aCommand to domain's RepeatEveryCommand's constructCommand()
+		set aCommand's frequency to "DAILY"
+		
+		tell aCommand to execute(aTask)
+		
+		tell application "OmniFocus"
+			my assertNotEqual(missing value, aTask's repetition rule)
+			set expectedRepetitionRule to {repetition method:fixed repetition, recurrence:"FREQ=DAILY"}
+			my assertEqual(expectedRepetitionRule, aTask's repetition rule)
+		end tell
+	end script
+	
+	script |repeat weekly|
+		property parent : UnitTest(me)
+	
+		set aTask to createInboxTask("Foo")
+		set aCommand to domain's RepeatEveryCommand's constructCommand()
+		set aCommand's frequency to "WEEKLY"
+		
+		tell aCommand to execute(aTask)
+		
+		tell application "OmniFocus"
+			my assertNotEqual(missing value, aTask's repetition rule)
+			set expectedRepetitionRule to {repetition method:fixed repetition, recurrence:"FREQ=WEEKLY"}
+			my assertEqual(expectedRepetitionRule, aTask's repetition rule)
 		end tell
 	end script
 	

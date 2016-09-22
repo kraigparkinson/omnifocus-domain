@@ -71,19 +71,16 @@ script AppendNoteCommand
 	end defineNote
 end script
 
-script DeferAnotherPeriodCommand
+script DeferAnotherCommand
 	property parent : TaskCommand
 	property frequency : missing value
 	
 	on execute(aTask)
 		tell application "OmniFocus"
-			with timeout of 3 seconds
-			
-				set freqString to "FREQ=" & frequency
-				set newRepetitionRule to {repetition method:start after completion, recurrence:freqString}
-			
-				set aTask's repetition rule to newRepetitionRule
-			end timeout
+			set freqString to "FREQ=" & frequency
+			set newRepetitionRule to {repetition method:start after completion, recurrence:freqString}
+		
+			set aTask's repetition rule to newRepetitionRule
 		end tell
 	end execute
 end script
@@ -94,12 +91,10 @@ script DueAgainCommand
 	
 	on execute(aTask)
 		tell application "OmniFocus"
-			with timeout of 3 seconds
-			
-				set newRepetitionRule to {repetition method:due after completion, recurrence:freqString}
-			
-				set aTask's repetition rule to newRepetitionRule
-			end timeout
+			set freqString to "FREQ=" & frequency
+			set newRepetitionRule to {repetition method:due after completion, recurrence:freqString}
+	
+			set aTask's repetition rule to newRepetitionRule
 		end tell
 	end execute
 end script
@@ -110,11 +105,10 @@ script RepeatEveryCommand
 	
 	on execute(aTask)
 		tell application "OmniFocus"
-			with timeout of 3 seconds
-				set newRepetitionRule to {repetition method:fixed repetition, recurrence:freqString}
-			
-				set aTask's repetition rule to newRepetitionRule
-			end timeout
+			set freqString to "FREQ=" & frequency
+			set newRepetitionRule to {repetition method:fixed repetition, recurrence:freqString}
+		
+			set aTask's repetition rule to newRepetitionRule
 		end tell
 	end execute
 end script
