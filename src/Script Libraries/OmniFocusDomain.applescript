@@ -71,54 +71,6 @@ script AppendNoteCommand
 	end defineNote
 end script
 
-
-script AbstractRepeatDeferCommand
-	property parent : TaskCommand
-	property repetitionRule : { }
-	
-	on constructCommand()
-		copy me to aCommand
-		tell aCommand to addRecurrenceText()
-		tell aCommand to addRepetitionMethod()
-		return aCommand
-	end constructCommand
-	
-	on addRecurrenceText()
-	end addRecurrenceText
-	
-	on addRepetitionMethod()
-	end addRepetitionMethod
-	
-	on execute(aTask)
-		tell application "OmniFocus"
-			with timeout of 3 seconds
-			
-				set newRepetitionRule to my repetitionRule
-			
-				set aTask's repetition rule to newRepetitionRule
-	--			set aTask's repetition to { unit:day, steps:2, fixed:false }
-			end timeout
-		end tell
-	end execute
-end script
-
-script RepeatDeferWeeklyCommand
-	property parent : AbstractRepeatDeferCommand
-	
-	on addRecurrenceText()
-		set my repetitionRule to my repetitionRule & { recurrence:"FREQ=WEEKLY" }
-	end addRecurrenceText
-	
-	on addRepetitionMethod()
-		tell application "OmniFocus"
-			with timeout of 3 seconds
-			
-				set my repetitionRule to my repetitionRule & { repetition method:start after completion }
-			end timeout
-		end tell
-	end addRepetitionMethod	
-end script
-
 script DeferAnotherPeriodCommand
 	property parent : TaskCommand
 	property frequency : missing value
@@ -131,46 +83,37 @@ script DeferAnotherPeriodCommand
 				set newRepetitionRule to {repetition method:start after completion, recurrence:freqString}
 			
 				set aTask's repetition rule to newRepetitionRule
-	--			set aTask's repetition to { unit:day, steps:2, fixed:false }
 			end timeout
 		end tell
 	end execute
 end script
 
-script DeferAnotherDayCommand
-	property parent : DeferAnotherPeriodCommand
-	property frequency : "DAILY"
-end script
-
-script DueAgainDailyCommand
+script DueAgainCommand
 	property parent : TaskCommand
+	property frequency : missing value
 	
 	on execute(aTask)
 		tell application "OmniFocus"
 			with timeout of 3 seconds
 			
-				set newRepetitionRule to {repetition method:due after completion, recurrence:"FREQ=DAILY"}
-				log "made a repetition rule"
+				set newRepetitionRule to {repetition method:due after completion, recurrence:freqString}
 			
 				set aTask's repetition rule to newRepetitionRule
-	--			set aTask's repetition to { unit:day, steps:2, fixed:false }
 			end timeout
 		end tell
 	end execute
 end script
 
-script RepeatEveryDayCommand
+script RepeatEveryCommand
 	property parent : TaskCommand
+	property frequency : missing value
 	
 	on execute(aTask)
 		tell application "OmniFocus"
 			with timeout of 3 seconds
-			
-				set newRepetitionRule to {repetition method:fixed repetition, recurrence:"FREQ=DAILY"}
-				log "made a repetition rule"
+				set newRepetitionRule to {repetition method:fixed repetition, recurrence:freqString}
 			
 				set aTask's repetition rule to newRepetitionRule
-	--			set aTask's repetition to { unit:day, steps:2, fixed:false }
 			end timeout
 		end tell
 	end execute
