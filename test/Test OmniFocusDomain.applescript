@@ -1,3 +1,6 @@
+use AppleScript version "2.4" -- Yosemite (10.10) or later
+use scripting additions
+
 (*!
 	@header Test OF Context Repository
 		ContextRepository self tests.
@@ -6,9 +9,10 @@
 	@copyright 2015 kraigparkinson
 *)
 
-property dateutil : script "com.kraigparkinson/ASDate"
+use dateutil : script "com.kraigparkinson/ASDate"
 property ddd : script "com.kraigparkinson/ASDomainDrivenDesign"
-property domain : script "com.kraigparkinson/OmniFocusDomain"
+use domain : script "com.kraigparkinson/OmniFocusDomain"
+use application "OmniFocus"
 
 property parent : script "com.lifepillar/ASUnit"
 property suite : makeTestSuite("OmniFocusDomain")
@@ -16,110 +20,230 @@ property suite : makeTestSuite("OmniFocusDomain")
 
 my autorun(suite)
 
-script |NonrepeatingTaskSpecification|
-	property parent : TestSet(me)
-	property taskList : missing value
+script |TaskFactory|
+	property parent : registerFixture(me)
+
+	script |create creates blank shell|
+		property parent : registerTestCase(me)
+		
+		set aTask to domain's TaskFactory's create()
+		assertMissing(aTask's getName(), "Name should not be set.")
+		assertMissing(aTask's _assignedContainerValue(), "Project should not be set.")
+		assertMissing(aTask's _contextValue(), "Context should not be set.")
+		assertMissing(aTask's _dueDateValue(), "Due date should not be set.")
+		assertMissing(aTask's _deferDateValue(), "Defer date should not be set.")
+		assertMissing(aTask's _estimatedMinutesValue(), "Estimated minutes should not be set.")
+		refute(aTask's _flaggedValue(), "Flag should not be clear.")
+		assertMissing(aTask's _repetitionRuleValue(), "Repetition rule should not be set.")
+		assertMissing(aTask's _noteValue(), "Note should not be set.")
+		
+		aTask's setName("test")
+		set aTask to domain's TaskFactory's create()
+		assertMissing(aTask's getName(), "Name should not be set.")
+		assertMissing(aTask's _assignedContainerValue(), "Project should not be set.")
+		assertMissing(aTask's _contextValue(), "Context should not be set.")
+		assertMissing(aTask's _dueDateValue(), "Due date should not be set.")
+		assertMissing(aTask's _deferDateValue(), "Defer date should not be set.")
+		assertMissing(aTask's _estimatedMinutesValue(), "Estimated minutes should not be set.")
+		refute(aTask's _flaggedValue(), "Flag should not be clear.")
+		assertMissing(aTask's _repetitionRuleValue(), "Repetition rule should not be set.")
+		assertMissing(aTask's _noteValue(), "Note should not be set.")
+	end script
+
+end script
+
+script |TaskEntityImpl|
+	property parent : registerFixture(me)
+	
+	script |is not due|
+		property parent : registerTestCase(me)
+		
+		set aTask to domain's TaskFactory's create()
+		should(aTask's isNotDue(), "Should not be due.")
+	end script
+	
+	script |is due|
+		property parent : registerTestCase(me)
+		
+		set aTask to domain's TaskFactory's create()
+		set aDate to date "2001-01-01"
+		aTask's dueOn(aDate)
+		should(aTask's hasDueDate(), "Should be due.")
+	end script
+	
+	script |is not deferred|
+		property parent : registerTestCase(me)
+		
+		set aTask to domain's TaskFactory's create()
+		should(aTask's isNotDeferred(), "Should not be deferred.")
+	end script
+	
+	script |is deferred|
+		property parent : registerTestCase(me)
+		
+		set aTask to domain's TaskFactory's create()
+		set aDate to date "2001-01-01"
+		aTask's deferUntil(aDate)
+		should(aTask's hasDeferDate(), "Should be deferred.")
+	end script
+end script 
+
+script |TaskProxy|
+	property parent : registerFixture(me)
+	property taskFixture : missing value
+	property projectFixture : missing value
+	property contextFixture : missing value
 	
 	on setUp()
-		set taskList to { }
+		set expectedTaskName to "Test TaskProxy"
+		
+		set taskProperties to {name:expectedTaskName}
+		try
+			tell default document of application "OmniFocus"
+				set taskFixture to (make new inbox task with properties taskProperties)
+			end tell
+		on error errMsg number errNum
+			log "Error creating task: " & errMsg & errNum & taskFixture
+			error errMsg number errNum
+		end try
 	end setUp
 	
 	on tearDown()
-		repeat with aTask in taskList
-			tell application "OmniFocus"
-				try
-					delete aTask
-				on error errMsg number errNum
-					log "Error deleting task: " & errMsg & errNum & aTask
-					error errMsg number errNum
-				end try
-			end tell
-		end repeat
+		tell application "OmniFocus"
+			try
+				delete taskFixture
+			on error errMsg number errNum
+				log "Error deleting task: " & errMsg & errNum & taskFixture
+				error errMsg number errNum
+			end try
+		end tell
 	end tearDown
-	
-	on createInboxTask(transportText)
-		set newTask to domain's TaskRepository's createInboxTaskWithName(transportText)
-		set end of taskList to newTask		
-		return newTask 
-	end createInboxTask
-	
-	script |test specification works|
-		property parent : UnitTest(me)
+
+	script |create returns wrapped task|
+		property parent : registerTestCase(me)
 		
-		set aTask to createInboxTask("Foo")
+		set aTask to domain's DocumentTaskRepository's _makeTaskProxy(taskFixture)
+		assertEqual(taskFixture, aTask's original)
+		assertEQual(taskFixture's name, aTask's getName())
+	end script
+		
+	script |is not due|
+		property parent : registerTestCase(me)
+		
+		set aTask to domain's DocumentTaskRepository's _makeTaskProxy(taskFixture)
+		should(aTask's isNotDue(), "Should not be due.")
+	end script
+	
+	script |is due|
+		property parent : registerTestCase(me)
+		
+		set aTask to domain's DocumentTaskRepository's _makeTaskProxy(taskFixture)
+		set aDate to date "2001-01-01"
+		aTask's dueOn(aDate)
+		should(aTask's hasDueDate(), "Should be due.")
+	end script
+	
+	script |is not deferred|
+		property parent : registerTestCase(me)
+		
+		set aTask to domain's DocumentTaskRepository's _makeTaskProxy(taskFixture)
+		should(aTask's isNotDeferred(), "Should not be deferred.")
+	end script
+	
+	script |is deferred|
+		property parent : registerTestCase(me)
+		
+		set aTask to domain's DocumentTaskRepository's _makeTaskProxy(taskFixture)
+		set aDate to date "2001-01-01"
+		aTask's deferUntil(aDate)
+		should(aTask's hasDeferDate(), "Should be deferred.")
+	end script
+end script 
+
+script |TaskRepository Fixture|
+    property parent : makeFixture()
+	property lastRepo : missing value
+	
+	on setUp()
+		set lastRepo to domain's _taskRepository
+		set domain's _taskRepository to domain's RuntimeTaskRepository		
+	end setUp
+	
+	on tearDown()
+		set domain's _taskRepository to lastRepo
+	end tearDown
+end script
+
+script |NonrepeatingTaskSpecification|
+	property parent : registerFixture(me)
+	
+	script |specification passes without repetition rule set|
+		property parent : registerTestCase(me)
+		
+		set aTask to domain's TaskFactory's create()
+		aTask's setName("Foo")
+		
 		set aSpec to domain's NonrepeatingTaskSpecification
 		
 		assert(aSpec's isSatisfiedBy(aTask), "Inbox task should not have a repetition rule.")		
+	end script
+
+	script |specification fails with repetition rule set|
+		property parent : registerTestCase(me)
 		
-		tell application "OmniFocus"
-			set aTask's repetition rule to {repetition method:start after completion, recurrence:"FREQ=DAILY"}
-		end tell
+		set aTask to domain's TaskFactory's create()
+		aTask's setName("Foo")
+		aTask's deferDaily()
+		
+		set aSpec to domain's NonrepeatingTaskSpecification
+		
 		refute(aSpec's isSatisfiedBy(aTask), "Should have a repetition rule now.")
 	end script
 end script  
 
 
 script |DeferDailyRuleCommand|
-	property parent : TestSet(me)
-	property taskList : missing value
+	property parent : registerFixture(me)
 	
 	on setUp()
-		set taskList to { }
 	end setUp
 	
 	on tearDown()
-		repeat with aTask in taskList
-			tell application "OmniFocus"
-				try
-					delete aTask
-				on error errMsg number errNum
-					log "Error deleting task: " & errMsg & errNum & aTask
-					error errMsg number errNum
-				end try
-			end tell
-		end repeat
 	end tearDown
 	
-	on createInboxTask(transportText)
-		set newTask to domain's TaskRepository's createInboxTaskWithName(transportText)
-		set end of taskList to newTask		
-		return newTask 
-	end createInboxTask
-
 	script |test daily defer works|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 	
-		set aTask to createInboxTask("Foo")
+		set aTask to domain's TaskFactory's create()
+		aTask's setName("Foo")
+		
 		set aCommand to domain's DeferAnotherCommand's constructCommand()
 		set aCommand's frequency to "DAILY"
 		
 		tell aCommand to execute(aTask)
-		
-		tell application "OmniFocus"
-			my assertNotEqual(missing value, aTask's repetition rule)
+
+		using terms from application "OmniFocus"
+			my assert(aTask's isRepeating(), "Task should now be repeating.")
 			set expectedRepetitionRule to {repetition method:start after completion, recurrence:"FREQ=DAILY"}
-			my assertEqual(expectedRepetitionRule, aTask's repetition rule)
-			
---			my assertEqual("FREQ=DAILY", aTask's repetition rule's recurrence as text)
---			my assert(start after completion is aTask's repetition rule's repetition method, "Should start after completion")
-		end tell
+			my assertEqual(expectedRepetitionRule, aTask's _repetitionRule)
+		end using terms from
 	end script
 	
 	script |test weekly defer works|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 	
-		set aTask to createInboxTask("Foo")
+		set aTask to domain's TaskFactory's create()
+		aTask's setName("Foo")
+		
 		set aCommand to domain's DeferAnotherCommand's constructCommand()
 		set aCommand's frequency to "WEEKLY"
 		
 		tell aCommand to execute(aTask)
 		
 		tell application "OmniFocus"
-			my assertNotEqual(missing value, aTask's repetition rule)
+			my assert(aTask's isRepeating(), "Task should now be repeating.")
 			set expectedRepetitionRule to {repetition method:start after completion, recurrence:"FREQ=WEEKLY"}
-			my assertEqual(expectedRepetitionRule, aTask's repetition rule)
---			my assertEqual("FREQ=WEEKLY", aTask's repetition rule's recurrence as text)
---			my assert(start after completion is aTask's repetition rule's repetition method, "Should start after completion")
+			my assertEqual(expectedRepetitionRule, aTask's _repetitionRule)
 		end tell
 	end script
 	
@@ -127,61 +251,47 @@ end script
 
 
 script |DueAgainCommand|
-	property parent : TestSet(me)
-	property taskList : missing value
+	property parent : registerFixture(me)
 	
 	on setUp()
-		set taskList to { }
 	end setUp
 	
 	on tearDown()
-		repeat with aTask in taskList
-			tell application "OmniFocus"
-				try
-					delete aTask
-				on error errMsg number errNum
-					log "Error deleting task: " & errMsg & errNum & aTask
-					error errMsg number errNum
-				end try
-			end tell
-		end repeat
 	end tearDown
 	
-	on createInboxTask(transportText)
-		set newTask to domain's TaskRepository's createInboxTaskWithName(transportText)
-		set end of taskList to newTask		
-		return newTask 
-	end createInboxTask
-
 	script |test due again daily works|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 	
-		set aTask to createInboxTask("Foo")
+		set aTask to domain's TaskFactory's create()
+		aTask's setName("Foo")
+	
 		set aCommand to domain's DueAgainCommand's constructCommand()
 		set aCommand's frequency to "DAILY"
 		
 		tell aCommand to execute(aTask)
 		
 		tell application "OmniFocus"
-			my assertNotEqual(missing value, aTask's repetition rule)
+			my assert(aTask's isRepeating(), "Task should now be repeating.")
 			set expectedRepetitionRule to {repetition method:due after completion, recurrence:"FREQ=DAILY"}
-			my assertEqual(expectedRepetitionRule, aTask's repetition rule)
+			my assertEqual(expectedRepetitionRule, aTask's _repetitionRule)
 		end tell
 	end script
 	
 	script |test due again weekly works|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 	
-		set aTask to createInboxTask("Foo")
+		set aTask to domain's TaskFactory's create()
+		aTask's setName("Foo")
+	
 		set aCommand to domain's DueAgainCommand's constructCommand()
 		set aCommand's frequency to "WEEKLY"
 		
 		tell aCommand to execute(aTask)
 		
 		tell application "OmniFocus"
-			my assertNotEqual(missing value, aTask's repetition rule)
+			my assert(aTask's isRepeating(), "Task should now be repeating.")
 			set expectedRepetitionRule to {repetition method:due after completion, recurrence:"FREQ=WEEKLY"}
-			my assertEqual(expectedRepetitionRule, aTask's repetition rule)
+			my assertEqual(expectedRepetitionRule, aTask's _repetitionRule)
 		end tell
 	end script
 	
@@ -189,68 +299,109 @@ end script
 
 
 script |RepeatEveryPeriodCommand|
-	property parent : TestSet(me)
-	property taskList : missing value
+	property parent : registerFixture(me)
 	
 	on setUp()
-		set taskList to { }
 	end setUp
 	
 	on tearDown()
-		repeat with aTask in taskList
-			tell application "OmniFocus"
-				try
-					delete aTask
-				on error errMsg number errNum
-					log "Error deleting task: " & errMsg & errNum & aTask
-					error errMsg number errNum
-				end try
-			end tell
-		end repeat
 	end tearDown
 	
-	on createInboxTask(transportText)
-		set newTask to domain's TaskRepository's createInboxTaskWithName(transportText)
-		set end of taskList to newTask		
-		return newTask 
-	end createInboxTask
-
 	script |repeat daily|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 	
-		set aTask to createInboxTask("Foo")
+		set aTask to domain's TaskFactory's create()
+		aTask's setName("Foo")
+	
 		set aCommand to domain's RepeatEveryCommand's constructCommand()
 		set aCommand's frequency to "DAILY"
 		
 		tell aCommand to execute(aTask)
 		
 		tell application "OmniFocus"
-			my assertNotEqual(missing value, aTask's repetition rule)
+			my assert(aTask's isRepeating(), "Should now be repeating.")
 			set expectedRepetitionRule to {repetition method:fixed repetition, recurrence:"FREQ=DAILY"}
-			my assertEqual(expectedRepetitionRule, aTask's repetition rule)
+			my assertEqual(expectedRepetitionRule, aTask's _repetitionRule)
 		end tell
 	end script
 	
 	script |repeat weekly|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 	
-		set aTask to createInboxTask("Foo")
+		set aTask to domain's TaskFactory's create()
+		aTask's setName("Foo")
+
 		set aCommand to domain's RepeatEveryCommand's constructCommand()
 		set aCommand's frequency to "WEEKLY"
 		
 		tell aCommand to execute(aTask)
 		
 		tell application "OmniFocus"
-			my assertNotEqual(missing value, aTask's repetition rule)
+			my assert(aTask's isRepeating(), "Should now be repeating.")
 			set expectedRepetitionRule to {repetition method:fixed repetition, recurrence:"FREQ=WEEKLY"}
-			my assertEqual(expectedRepetitionRule, aTask's repetition rule)
+			my assertEqual(expectedRepetitionRule, aTask's _repetitionRule)
 		end tell
 	end script
 	
 end script  
 
-script |OmniFocus Project Repository|
-	property parent : TestSet(me)
+script |Specification Fixture|
+	property parent : makeFixture()
+	
+	on testSpecification(aSpec, aTask)
+		should(aSpec's isSatisfiedBy(aTask), "Spec should be satisfied.")
+	end testSpecification
+end script
+
+script |MatchingNameTaskSpecification|
+	property parent : registerFixtureOfKind(me, |Specification Fixture|)
+	
+	script |satisfied when name is identical|
+		property parent : registerTestCase(me)
+
+		set expectedTaskName to "Test Matching Name Specification Test"
+		set aTask to domain's TaskFactory's create()
+		aTask's setName(expectedTaskName)
+
+		set aSpec to domain's MatchingNameTaskSpecification
+		set taskName of aSpec to expectedTaskName
+
+		testSpecification(aSpec, aTask)
+--		should(aSpec's isSatisfiedBy(aTask), "Spec should be satisfied.")
+	end script 
+end script
+
+script |UnparsedTaskSpecification|
+	property parent : registerFixture(me)
+
+	script |satisfied when task name has token|
+		property parent : registerTestCase(me)
+
+		set aTask to domain's TaskFactory's create()
+		aTask's setName("--Unparsed Name Specification Test (Unparsed)")
+
+		set aSpec to domain's UnparsedTaskSpecification
+
+		should(aSpec's isSatisfiedBy(aTask), "Spec should be satisfied.")
+	end script 	
+	
+	script |not satisfied when task name does not have token|
+		property parent : registerTestCase(me)
+
+		set aTask to domain's TaskFactory's create()
+		aTask's setName("Unparsed Name Specification Test (Parsed)")
+
+		set aSpec to domain's UnparsedTaskSpecification
+
+		shouldnt(aSpec's isSatisfiedBy(aTask), "Spec should not be satisfied.")
+	end script 	
+end script
+
+
+
+script |DocumentProjectRepository|
+	property PROJECT_FIXTURE_NAME : "Test DocumentProjectRepository"
+	property parent : registerFixture(me)
 	property projectList : {}
 	
 	on setUp()
@@ -264,43 +415,45 @@ script |OmniFocus Project Repository|
 	end tearDown
 	
 	on createProject(projectName)
-		set newProject to domain's ProjectRepository's create(projectName)
+		set newProject to domain's ProjectRepository's create(PROJECT_FIXTURE_NAME)
 		set projectList to projectList & {newProject}
 		return newProject
 	end createProject
 	
 	script |create project with name|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 		
-		set testProject to createProject("Test Project")
+		set testProject to createProject(PROJECT_FIXTURE_NAME)
 		
 		tell application "OmniFocus"
-			my shouldEqual("Test Project", name of testProject)
+			my shouldEqual(PROJECT_FIXTURE_NAME, name of testProject)
 		end tell
 	end script
 
 	script |find existing project with name|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 		
-		set projectName to "Test Project"
-		set testProject to createProject(projectName)
+		set testProject to createProject(PROJECT_FIXTURE_NAME)
 		
-		set foundProject to domain's ProjectRepository's findByName(projectName)
+		set foundProject to domain's ProjectRepository's findByName(PROJECT_FIXTURE_NAME)
 		
 		tell application "OmniFocus"
-			my shouldEqual("Test Project", name of testProject)
+			my shouldEqual(PROJECT_FIXTURE_NAME, name of testProject)
 			my shouldEqual(testProject, foundProject)
-		end tell
-		
-		shouldEqual(missing value, domain's ProjectRepository's findByName("asdfghjkl;"))
+		end tell		
 	end script
 	
-	
+	script |find non-existing project returns missing value|
+		property parent : registerTestCase(me)
+				
+		shouldEqual(missing value, domain's ProjectRepository's findByName("Test Find non-existing project"))
+	end script
 end script
 
-
-script |OmniFocus Task Repository|
-	property parent : TestSet(me)
+script |DocumentTaskRepository|
+	property PROJECT_FIXTURE_NAME : "Test" & space & "DocumentTaskRepository" & space & "(Project)"
+	property CONTEXT_FIXTURE_NAME : "Test DocumentTaskRepository (Context)"
+	property parent : registerFixture(me)
 	property taskList : {}
 	property contextFixture : missing value
 	property contextList : {}
@@ -310,30 +463,38 @@ script |OmniFocus Task Repository|
 	on setUp()
 		set taskList to {}
 		
-		set contextFixture to domain's ContextRepository's create("Test Context")
+		set contextFixture to domain's ContextRepository's create(CONTEXT_FIXTURE_NAME)
 		set contextList to { contextFixture }
-		set projectFixture to domain's ProjectRepository's create("1 Test Project")
+		set projectFixture to domain's ProjectRepository's create(PROJECT_FIXTURE_NAME)
 		set projectList to { projectFixture }
 	end setUp
 	
+	on addTaskToFixture(aTask)
+		set end of taskList to aTask
+--		set taskList to taskList & { aTask }		
+	end addTaskToFixture
+	
 	on tearDown()
+		set errorList to { }
+		
 		repeat with aTask in taskList
 			tell application "OmniFocus"
 				try
-					delete aTask
+					delete aTask's original
 				on error errMsg number errNum
-					log "Error deleting task: " & errMsg & errNum & aTask
-					error errMsg number errNum
+					set end of errorList to errMsg
+					log "Error deleting task: " & errMsg & errNum
 				end try
 			end tell
 		end repeat
+		
 		repeat with aContext in contextList
 			tell application "OmniFocus"
 				try
 					tell default document to delete aContext
 				on error errMsg number errNum
-					log "Error deleting context: " & errMsg & errNum & aContext
-					error errMsg number errNum
+					log "Error deleting context: " & errMsg & errNum
+					set end of errorList to errMsg
 				end try
 			end tell
 		end repeat
@@ -342,235 +503,173 @@ script |OmniFocus Task Repository|
 				try
 					tell default document to delete aProject
 				on error errMsg number errNum
-					log "Error deleting project: " & errMsg & errNum & aProject
-					error errMsg number errNum
+					log "Error deleting project: " & errMsg & errNum
+					set end of errorList to errMsg
 				end try
 			end tell
 		end repeat
+		
+		if count of errorList > 0 then error errorList
 	end tearDown
 	
-	on createTaskWithTaskName(taskName)
-		set newTask to domain's TaskRepository's createInboxTaskWithName(taskName)
-		set taskList to taskList & {newTask}		
-		return newTask
-	end createTaskWithTaskName
+	script |_makeTaskProxy places OF task into TaskProxy|
+		property parent : registerTestCase(me)
+		set expectedTaskName to "Test wrap places OF task into TaskProxy"
 
-	on createTaskWithProperties(taskProperties)
-		set newTask to domain's TaskRepository's createInboxTaskWithProperties(taskProperties)
-		set taskList to taskList & {newTask}		
-		return newTask
-	end createTaskWithTaskName
-	
-	on createTaskWithTransportText(transportText)
-		set newTaskList to domain's TaskRepository's createFromTransportText(transportText)
+		set expectedDeferDate to date "2009-01-02"
+		set expectedDueDate to date "2009-05-31"
 		
-		set taskList to taskList & {newTaskList}
-		
-		shouldEqual(1, length of newTaskList)
-		set newTask to first item in newTaskList
-
-		return newTask
-	end createTask
-	
-	script |matching name specification|
-		property parent : UnitTest(me)
-	
-		set expectedTaskName to "Matching Name Specification Test"
-		set expectedTask to createTaskWithTaskName(expectedTaskName)
-		
-		set aSpec to domain's MatchingNameTaskSpecification
-		set aName of aSpec to expectedTaskName
-
-		tell application "OmniFocus"
-			my shouldEqual(expectedTaskName, name of expectedTask)
+		tell default document of application "OmniFocus"
+			set taskProperties to {name:expectedTaskName, assigned container:projectFixture, context:contextFixture, defer date:expectedDeferDate, due date:expectedDueDate, estimated minutes:10, flagged:true, note:"A great note."}
+			set aTask to make new inbox task with properties taskProperties
+			set aTask to domain's DocumentTaskRepository's _makeTaskProxy(aTask)
 		end tell
 		
-		should(aSpec's isSatisfiedBy(expectedTask), "Spec should be satisfied.")
-	end script 
+		addTaskToFixture(aTask)
+		
+		assertEqual(expectedTaskName, aTask's getName())
+		assertEqual(projectFixture, aTask's _assignedContainerValue())
+--		assertEqual(projectFixture, aTask's _containingProjectValue())
+		assertEqual(contextFixture, aTask's _contextValue())
+		assertEqual(expectedDeferDate, aTask's _deferDateValue())
+		assertEqual(expectedDueDate, aTask's _dueDateValue())
+		should(aTask's _flaggedValue(), "Should be flagged")
+		assertEqual(10, aTask's _estimatedMinutesValue())
+		assertEqual(aTask's _noteValue(), "A great note.")
+	end script
 	
-	script |unparsed task specification|
-		property parent : UnitTest(me)
-	
-		set unparsedExpectedTaskName to "--Unparsed Name Specification Test (Unparsed)"
-		set unparsedExpectedTask to createTaskWithTaskName(unparsedExpectedTaskName)
-
-		set parsedExpectedTaskName to "Unparsed Name Specification Test (Parsed)"
-		set parsedExpectedTask to createTaskWithTaskName(parsedExpectedTaskName)
+	script |select all inbox tasks returns a list|
+		property parent : registerTestCase(me)
 		
-		set aSpec to domain's UnparsedTaskSpecification
-
-		tell application "OmniFocus"
-			my shouldEqual(unparsedExpectedTaskName, name of unparsedExpectedTask)
-			my shouldEqual(parsedExpectedTaskName, name of parsedExpectedTask)
-		end tell
+		set allTasks to domain's DocumentTaskRepository's selectAllInboxTasks()
 		
-		should(aSpec's isSatisfiedBy(unparsedExpectedTask), "Spec should be satisfied.")
-		shouldnt(aSpec's isSatisfiedBy(parsedExpectedTask), "Spec should not be satisfied.")
-	end script 
-	
-	script |select all inbox tasks|
-		property parent : UnitTest(me)
-		
-		set expectedTaskName to "All Inbox Tasks Test"
-		set expectedTask to createTaskWithTaskName(expectedTaskName)
-		
-		set allTasks to domain's TaskRepository's selectAllInboxTasks()
-		
-		should((count of allTasks) > 0, "Should be at least one inbox task.")
-		should(allTasks contains { expectedTask }, "Should contain the task we created.")		
+		refuteMissing(allTasks, "Should be a list, even a zero-length one.")
 	end script
 	
 	script |select selected inbox tasks|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 		
-		set expectedTaskName to "Selected Inbox Tasks Test"
-		set expectedTask to createTaskWithTaskName(expectedTaskName)
+		set expectedTaskName to "Test select selected inbox tasks"
 		
+		set aTask to domain's TaskFactory's create()
+		aTask's setName(expectedTaskName)
+		
+		set aTask to domain's DocumentTaskRepository's addTask(aTask)
+		addTaskToFixture(aTask)
 		
 		set aSpec to domain's MatchingNameTaskSpecification
-		set aName of aSpec to expectedTaskName
+		set taskName of aSpec to expectedTaskName
 		
-		set actualTasks to domain's TaskRepository's selectInboxTasks(aSpec)
+		set actualTasks to domain's DocumentTaskRepository's selectInboxTasks(aSpec)
 		
 		shouldEqual(1, count of actualTasks)
 		
 		tell application "OmniFocus"
 			set actualTask to first item of actualTasks
-			my shouldEqual(id of expectedTask, id of actualTask)
-			my shouldEqual(expectedTaskName, name of actualTask)
+			my shouldEqual(aTask's original's id, actualTask's original's id)
+			my shouldEqual(expectedTaskName, actualTask's getName())
 		end tell		
 	end script
 	
-	script |create task with task name|
-		property parent : UnitTest(me)
-	
-		set expectedTaskName to "Test create task with task name"
-		set myTask to createTaskWithTaskName(expectedTaskName)
-	
-		tell application "OmniFocus"
-			set actualTaskName to name of myTask
-			my shouldEqual(expectedTaskName, actualTaskName)
-			my shouldEqual(missing value, containing project of myTask)
-			my shouldEqual(missing value, context of myTask)
-			my shouldEqual(missing value, defer date of myTask)
-			my shouldEqual(missing value, due date of myTask)		
-		end tell
-	end script 
-	
-	script |create task with properties|
-		property parent : UnitTest(me)
-	
-		set expectedTaskName to "Test create task with properties"
-		set myTask to createTaskWithProperties({name:expectedTaskName})
-	
-		tell application "OmniFocus"
-			set actualTaskName to name of myTask
-			my shouldEqual(expectedTaskName, actualTaskName)
-			my shouldEqual(missing value, containing project of myTask)
-			my shouldEqual(missing value, context of myTask)
-			my shouldEqual(missing value, defer date of myTask)
-			my shouldEqual(missing value, due date of myTask)		
-		end tell
-	end script 
-	
+	script |add preserves values as provided|
+		property parent : registerTestCase(me)
+		
+		set expectedDueDate to dateutil's CalendarDate's (today at "5:00pm")'s asDate()
+		set expectedDeferDate to dateutil's CalendarDate's (yesterday at "12:00pm")'s asDate()
+		
+		set aTask to domain's TaskFactory's create()
+		set aTask's _name to "Test add preserves values as provided"
+		set aTask's _assignedContainer to projectFixture
+		set aTask's _context to contextFixture
+		set aTask's _deferDate to expectedDeferDate
+		set aTask's _dueDate to expectedDueDate
+		set aTask's _estimatedMinutes to 10
+		set aTask's _note to "This is a note"
+		set aTask's _flagged to true
+		set aTask to domain's DocumentTaskRepository's addTask(aTask)
+		addTaskToFixture(aTask)
+
+		assertEqual("Test add preserves values as provided", aTask's getName())
+		assertEqual(projectFixture, aTask's _assignedContainerValue())
+--		assertEqual(projectFixture, aTask's _containingProjectValue())
+		assertEQual(contextFixture, aTask's _contextValue())
+		assertEqual(expectedDeferDate, aTask's _deferDateValue())
+		assertEqual(expectedDueDate, aTask's _dueDateValue())
+		assertEqual(10, aTask's _estimatedMinutesValue())
+		assertEqual(true, aTask's _flaggedValue())
+		assertEqual("This is a note", aTask's _noteValue()'s text)
+	end script
+			
 	script |create task with transport text|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 	
 		set expectedTaskName to "Test create tasks with transport text"
+		set expectedDueDate to dateutil's CalendarDate's (today at "5:00pm")'s asDate()
+		set expectedDeferDate to dateutil's CalendarDate's (yesterday at "12:00pm")'s asDate()
+		set expectedNote to "A note."
 		
-		testCreateTaskWithTransportText(expectedTaskName, expectedTaskName, missing value, missing value, missing value, missing value, missing value)
+		set transportText to expectedTaskName & "! ::" & PROJECT_FIXTURE_NAME & " @" & CONTEXT_FIXTURE_NAME & " $5m" & " //" & expectedNote
+		
+		set newTaskList to domain's DocumentTaskRepository's addTaskFromTransportText(transportText)
+		
+		should(count of newTaskList is 1, "Should have one task from adding task via transport text") 
+		
+		set myTask to first item in newTaskList		
+		addTaskToFixture(myTask)
+		shouldEqual(expectedTaskName, myTask's getName())
+		shouldEqual(projectFixture, myTask's _containingProjectValue())
+		shouldEqual(contextFixture, myTask's _contextValue())
+--		shouldEqual(expectedDeferDate, myTask's _deferDateValue())	
+--		shouldEqual(expectedDueDate, myTask's _dueDateValue())
+		shouldEqual(5, myTask's _estimatedMinutesValue())
+		shouldEqual(expectedNote, myTask's _noteValue())
 	end script 
 	
-	script |create tasks with transport text with exact items (hours only)|
-		property parent : UnitTest(me)
+	script |findById returns existing tasks that match id|
+		property parent : registerTestCase(me)
 		
-		set transportText to "Test Task Name ::1 Test Project @Test Context #tuesday #wednesday at 5.00pm $5m"
+		set aTask to domain's TaskFactory's create()
+		tell aTask to setName("Test findById")
+		set aTask to domain's DocumentTaskRepository's addTask(aTask)
+		addTaskToFixture(aTask)
+			
+		local taskId
+		using terms from application "OmniFocus"
+			set expectedTaskId to aTask's original's id
+			set actualTask to domain's DocumentTaskRepository's findById(expectedTaskId)
+			set actualTaskId to actualTask's original's id
+		end using terms from
 		
-		local tuesDate
-		local wedsDate
-		
-		tell dateutil's CalendarDate
-			set tuesDate to parse from "tuesday"
-			set wedsDate to parse from "wednesday" by "05:00:00PM"
-		end tell
-		
-		set expectedDeferDate to (dateutil's CalendarDate's parse from "tuesday")'s asDate()
-		set expectedDueDate to (dateutil's CalendarDate's parse from "wednesday" at "05:00:00PM")'s asDate()
-		
-		testCreateTaskWithTransportText("Test Task Name ::1 Test Project @Test Context #tuesday #wednesday at 5.00pm $5m", "Test Task Name", projectFixture, contextFixture, expectedDeferDate, expectedDueDate, 5)
-		testCreateTaskWithTransportText("Test Task Name ::1 Test Project @Test Context #tuesday #wednesday at 5pm $5m", "Test Task Name", projectFixture, contextFixture, expectedDeferDate, expectedDueDate, 5)
-		testCreateTaskWithTransportText("Test Task Name ::1 Test Project @Test Context #tuesday #wednesday at 17 $5m", "Test Task Name", projectFixture, contextFixture, expectedDeferDate, expectedDueDate, 5)
-		testCreateTaskWithTransportText("Test Task Name ::1 Test Project @Test Context #tuesday #wednesday at 5:00pm $5m", "Test Task Name:00pm", projectFixture, contextFixture, expectedDeferDate, (dateutil's CalendarDate's parse from "wednesday" at "05:00:00AM")'s asDate(), 5)
+		assertEqual(expectedTaskId, actualTaskId)
+--		assertEqual(aTask, actualTask)
 	end script
 
-	on testCreateTaskWithTransportText(transportText, expectedTaskName, expectedProject, expectedContext, expectedDeferDate, expectedDueDate, expectedEstimatedMinutes)
-		set myTask to createTaskWithTransportText(transportText)
-		
-		tell application "OmniFocus"
-			my shouldEqual(expectedTaskName, name of myTask)
-			my shouldEqual(expectedProject, containing project of myTask)
-			my shouldEqual(expectedContext, context of myTask)
-			my shouldEqual(expectedDeferDate, defer date of myTask)	
-			my shouldEqual(expectedDueDate, due date of myTask)
-			my shouldEqual(expectedEstimatedMinutes, estimated minutes of myTask)			
-		end tell
-	end testCreateTaskWithTransportText
+	script |findById returns missing value for no match|
+		property parent : registerTestCase(me)
+				
+		assertMissing(domain's DocumentTaskRepository's findById("gibberish"), "Should not have found a task with 'gibberish' as id.")
+	end script
 	
-	script |create tasks with transport text with exact items (minutes)|
-		property parent : UnitTest(me)
+	script |removeTask deletes task from document|
+		property parent : registerTestCase(me)
 		
-		set transportText to "Test Task Name ::Test Project @Test Context #2015-09-18 at 8.30am #wednesday $5m"
-		
-		set expectedTaskName to "Test Task Name"
-		set expectedDeferDate to date "2015-09-18 08:30 AM"
-		set expectedProject to projectFixture
-		set expectedContext to contextFixture
-		set expectedCalendarDueDate to dateutil's CalendarDate's parse from "wednesday"
-		set expectedDueDate to date "5:00 PM" of expectedCalendarDueDate's asDate()		
-		set expectedEstimatedMinutes to 5
+		set aTask to domain's TaskFactory's create()
+		tell aTask to setName("Test removeTask deletes task from document")
+		set aTask to domain's DocumentTaskRepository's addTask(aTask)
 			
-		testCreateTaskWithTransportText("Test Task Name ::Test Project @Test Context #2015-09-18 at 8.30am #wednesday $5m", expectedTaskName, expectedProject, expectedContext, expectedDeferDate, expectedDueDate, expectedEstimatedMinutes)
-		testCreateTaskWithTransportText("Test Task Name ::Test Project @Test Context #2015-09-18 at 8:30am #wednesday $5m", "Test Task Name:30am", expectedProject, expectedContext, date "2015-09-18 08:00 AM", expectedDueDate, expectedEstimatedMinutes)
-	end script
-	
-	script |create tasks with transport text with inexact items (1 level deep)|
-		property parent : UnitTest(me)
-		
-		testCreateTaskWithTransportText("Test Task Name ::1 Test Proje @Test Conte $5m", "Test Task Name", projectFixture, contextFixture, missing value, missing value, 5)
-	end script
-	
-	script |create tasks with transport text with inexact items (multiple levels deep)|
-		property parent : UnitTest(me)
-		
-		set parentContext to domain's ContextRepository's create("Test Parent Context")
-		set contextList to contextList & {parentContext}
-		set childContext to domain's ContextRepository's createChild(parentContext, "Test Child Context")
-		--set contextList to contextList & {childContext}
-		
-		set myTask to createTaskWithTransportText("Test Task Name ::1 Test Project @Test Child $5m")
-		
-		tell application "OmniFocus"
-			my shouldEqual("Test Task Name", name of myTask)
-			my shouldEqual("1 Test Project", name of containing project of myTask)
-			my shouldEqual("Test Child Context", name of context of myTask)
-		end tell
-	end script
-	
-	script |create tasks with transport text with items that don't exist|
-		property parent : UnitTest(me)
-		
-		set myTask to createTaskWithTransportText("Test Task Name ::Nonexistent Test Project @Nonexistent Test Context $5m")
-		
-		tell application "OmniFocus"
-			my shouldEqual("Test Task Name ::Nonexistent Test Project @Nonexistent Test Context", name of myTask) --Leave it alone.
-			my shouldEqual(missing value, containing project of myTask)
-			my shouldEqual(missing value, context of myTask)
-		end tell
+		local taskId
+		using terms from application "OmniFocus"
+			set taskId to aTask's original's id
+		end using terms from
+
+		tell domain's DocumentTaskRepository to removeTask(aTask)
+
+		assertMissing(domain's DocumentTaskRepository's findById(taskId), "Should not have found such a task")
 	end script
 end script
 
 script |ContextRepository|
-	property parent : TestSet(me)
+	property parent : registerFixture(me)
 	property contextList : {}
 	
 	on setUp()
@@ -602,7 +701,7 @@ script |ContextRepository|
 	end createContext
 	
 	script |create context with name|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 		
 		set testContext to createContext("Test Context")
 		
@@ -613,7 +712,7 @@ script |ContextRepository|
 	
 	
 	script |create and find child context|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 		
 		set testParentContext to createContext("Test Parent Context")
 		set testChildContext to domain's ContextRepository's createChild(testParentContext, "Test Child Context")
@@ -627,7 +726,7 @@ script |ContextRepository|
 	
 	
 	script |find existing context|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 		
 		set myContext to createContext("Findable Context")
 		
@@ -638,7 +737,7 @@ script |ContextRepository|
 	end script
 	
 	script |don't find non-existing context|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 		
 		tell domain's ContextRepository
 			my shouldEqual(missing value, findByName("Nonexistent Test Context"))
@@ -646,7 +745,7 @@ script |ContextRepository|
 	end script
 		
 	script |find context from partially qualified name|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 		
 		createContext("Test Context")
 		
@@ -664,7 +763,7 @@ script |ContextRepository|
 	end script
 	
 	script |find context from fully qualified name of solo context|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 		
 		local myContext
 		
@@ -677,7 +776,7 @@ script |ContextRepository|
 	end script
 
 	script |find context from fully qualified name of nested context|
-		property parent : UnitTest(me)
+		property parent : registerTestCase(me)
 		
 		set testParentContext to createContext("Test Parent Context")
 		set testChildContext to domain's ContextRepository's createChild(testParentContext, "Test Child Context")

@@ -31,9 +31,8 @@ script BuildScriptLibrary
 	
 	property sourceDir : "src/Script Libraries/"
 	property destinationDir : "build/Script Libraries/com.kraigparkinson"
-
+	
 	makeScriptBundle from joinPath(sourceDir, "OmniFocusDomain.applescript") at destinationDir with overwriting
-	makeScriptBundle from joinPath(sourceDir, "OmniFocusTransportTextParsingService.applescript") at destinationDir with overwriting
 end script
 
 script BuildOFApplicationScripts
@@ -43,7 +42,7 @@ script BuildOFApplicationScripts
 	
 	property sourceDir : "src/OmniFocus Scripts/"
 	property destinationDir : "build/OmniFocus Scripts"
-
+	
 	tell BuildScriptLibrary to exec:{}
 	makeScriptBundle from joinPath(sourceDir, "Repeat Defer Daily.applescript") at destinationDir with overwriting
 	makeScriptBundle from joinPath(sourceDir, "Repeat Defer Weekly.applescript") at destinationDir with overwriting
@@ -83,8 +82,7 @@ script doc
 	if markdown is not missing value then
 		shell for markdown given options:{"-o", "README.html", "README.md"}
 	else
-		error markdown & space & "not found." & linefeed & Â
-			"PATH: " & (do shell script "echo $PATH")
+		error markdown & space & "not found." & linefeed & "PATH: " & (do shell script "echo $PATH")
 	end if
 end script
 
@@ -100,8 +98,7 @@ script dist
 	tell api to exec:{}
 	tell doc to exec:{}
 	
-	set {n, v} to {name, version} of Â
-		(run script POSIX file (joinPath(workingDirectory(), "src/OmniFocusDomain.applescript")))
+	set {n, v} to {name, version} of (run script POSIX file (joinPath(workingDirectory(), "src/OmniFocusDomain.applescript")))
 	set dir to n & "-" & v
 	makePath(dir)
 end script
@@ -116,40 +113,39 @@ end script
 
 script InstallOFApplicationScripts
 	property parent : Task(me)
-	property dir : POSIX path of Â
+	property dir : POSIX path of Â¬
 		((path to library folder from user domain) as text) & "Application Scripts/com.omnigroup.OmniFocus2"
 	property description : "Install Repeat Defer Daily in" & space & dir
 	
 	on installWithOverwriteAlert(scriptname, targetDirName)
 		set targetDir to joinPath(dir, targetDirName)
 		set targetPath to joinPath(targetDir, scriptname & ".scptd")
-
+		
 		copyItem at "build/OmniFocus Scripts/" & scriptname & ".scptd" into targetDir with overwriting
 		ohai(scriptname & " installed at" & space & targetPath)
 	end installWithOverwriteAlert
 	
 	tell BuildOFApplicationScripts to exec:{}
-	installWithOverwriteAlert("Repeat Defer Daily", "")	
-	installWithOverwriteAlert("Repeat Defer Weekly", "")	
+	installWithOverwriteAlert("Repeat Defer Daily", "")
+	installWithOverwriteAlert("Repeat Defer Weekly", "")
 end script
 
 script installScriptLibraries
 	property parent : Task(me)
-	property dir : POSIX path of Â
+	property dir : POSIX path of Â¬
 		((path to library folder from user domain) as text) & "Script Libraries"
 	property description : "Install OmniFocusDomain in" & space & dir
 	
 	on installWithOverwriteAlert(scriptname, targetDirName)
 		set targetDir to joinPath(dir, targetDirName)
 		set targetPath to joinPath(targetDir, scriptname & ".scptd")
-
+		
 		copyItem at "build/Script Libraries/" & scriptname & ".scptd" into targetDir with overwriting
 		ohai(scriptname & " installed at" & space & targetPath)
 	end installWithOverwriteAlert
-
+	
 	tell BuildScriptLibrary to exec:{}
 	installWithOverwriteAlert("com.kraigparkinson/OmniFocusDomain", "com.kraigparkinson")
-	installWithOverwriteAlert("com.kraigparkinson/OmniFocusTransportTextParsingService", "com.kraigparkinson")
 end script
 
 script install
@@ -168,9 +164,21 @@ script BuildTests
 	owarn("Due to bugs in OS X Yosemite, building tests requires ASUnit to be installed.")
 	
 	tell build to exec:{}
+	makeScriptBundle from "test/Test OmniFocus.applescript" at "test" with overwriting
 	makeScriptBundle from "test/Test OmniFocusDomain.applescript" at "test" with overwriting
 	makeScriptBundle from "test/Test OmniFocusTransportTextParsingService.applescript" at "test" with overwriting
-	makeScriptBundle from "test/Test OmniFocusTransportTextTokenizer.applescript" at "test" with overwriting
+end script
+
+script RunTestsOnOmniFocus
+	property parent : Task(me)
+	property name : "test/of"
+	property description : "Build and run tests on OmniFocus behavior"
+	property printSuccess : false
+
+	tell BuildTests to exec:{}
+	-- The following causes a segmentation fault unless ASUnit in installed in a shared location
+	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test OmniFocus.scptd"))
+	run testSuite
 end script
 
 script RunTests
@@ -182,12 +190,9 @@ script RunTests
 	tell BuildTests to exec:{}
 	-- The following causes a segmentation fault unless ASUnit in installed in a shared location
 	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test OmniFocusDomain.scptd"))
-	run testSuite	
-
-	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test OmniFocusTransportTextParsingService.scptd"))
 	run testSuite
-
-	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test OmniFocusTransportTextTokenizer.scptd"))
+	
+	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test OmniFocusTransportTextParsingService.scptd"))
 	run testSuite
 	
 end script
@@ -206,7 +211,7 @@ end script
 
 script uninstall
 	property parent : Task(me)
-	property dir : POSIX path of Â
+	property dir : POSIX path of Â¬
 		((path to library folder from user domain) as text) & "Script Libraries"
 	property description : "Remove OmniFocusDomain from" & space & dir
 	
@@ -215,13 +220,13 @@ script uninstall
 		removeItem at targetPath
 	end if
 	ohai(targetPath & space & "deleted.")
-
+	
 	set targetPath to joinPath(dir, "com.kraigparkinson/OmniFocusDomain.scptd")
 	if pathExists(targetPath) then
 		removeItem at targetPath
 	end if
 	ohai(targetPath & space & "deleted.")
-			
+	
 end script
 
 script VersionTask
@@ -230,7 +235,7 @@ script VersionTask
 	property description : "Print OmniFocusDomain's version and exit"
 	property printSuccess : false
 	
-	set {n, v} to {name, version} of Â
+	set {n, v} to {name, version} of Â¬
 		(run script POSIX file (joinPath(workingDirectory(), "OmniFocusDomain.applescript")))
 	ohai(n & space & "v" & v)
 end script
