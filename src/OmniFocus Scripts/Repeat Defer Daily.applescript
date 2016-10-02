@@ -23,8 +23,7 @@ on run
 	end if
 
 	repeat with selectedTask in validSelectedItemsList
-		set aCommand to domain's DeferAnotherCommand's constructCommand()
-		set aCommand's frequency to "DAILY"
+		set aCommand to domain's makeDeferAnotherCommand("DAILY")
 		tell aCommand to execute(selectedTask)
 	end repeat
 	

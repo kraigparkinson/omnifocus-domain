@@ -72,7 +72,7 @@ script |AssignedContainerNameExpression|
 	script |should assign project from token of existing project|
 		property parent : registerTestCase(me)
 		
-		set expr to domain's TransportTextParsingService's CustomInterpreter's TransportTextExpression's AssignedContainerNameExpression()
+		set expr to domain's TransportTextParsingService's CustomInterpreter's TransportTextExpression's makeAssignedContainerNameExpression()
 		set aTask to createTask("Should find project test")
 		
 		set variables to collections's makeMap()
@@ -80,7 +80,7 @@ script |AssignedContainerNameExpression|
 		
 		assertMissing(expr's interpret(aTask, variables))
 
-		assertEqual(projectFixture, aTask's _containingProjectValue())
+		assertEqual(projectFixture, aTask's _assignedContainerValue())
 		
 				
 	end script
@@ -88,7 +88,7 @@ script |AssignedContainerNameExpression|
 	script |should not assign project from token of non-existing project|
 		property parent : registerTestCase(me)
 		
-		set expr to domain's TransportTextParsingService's CustomInterpreter's TransportTextExpression's AssignedContainerNameExpression()
+		set expr to domain's TransportTextParsingService's CustomInterpreter's TransportTextExpression's makeAssignedContainerNameExpression()
 		set aTask to createTask("Should not assign project test")
 		
 		set variables to collections's makeMap()
@@ -96,14 +96,14 @@ script |AssignedContainerNameExpression|
 		
 		assertEqual("::Non-existent Project", expr's interpret(aTask, variables))
 
-		assertMissing(aTask's _containingProjectValue())
+		assertMissing(aTask's _assignedContainerValue())
 				
 	end script
 
 	script |should not assign project when project already assigned|
 		property parent : registerTestCase(me)
 		
-		set expr to domain's TransportTextParsingService's CustomInterpreter's TransportTextExpression's AssignedContainerNameExpression()
+		set expr to domain's TransportTextParsingService's CustomInterpreter's TransportTextExpression's makeAssignedContainerNameExpression()
 		set aTask to createTask("Should not assigned project test")
 		
 		tell aTask to assignToProject(projectFixture)
@@ -115,7 +115,7 @@ script |AssignedContainerNameExpression|
 		
 		assertMissing(expr's interpret(aTask, variables))
 
-		assertEqual(projectFixture, aTask's _containingProjectValue())
+		assertEqual(projectFixture, aTask's _assignedContainerValue())
 				
 	end script
 
@@ -322,7 +322,7 @@ script |TransportTextParsingService|
 		shouldEqual(expectedName, aTask's getName())
 		shouldEqual(expectedFlagged, aTask's hasFlagSet())
 		
-		shouldEqual(expectedProject, aTask's _containingProjectValue())		
+		shouldEqual(expectedProject, aTask's _assignedContainerValue())		
 		shouldEqual(expectedContext, aTask's _contextValue())
 
 		shouldEqual(expectedDeferDate, aTask's _deferDateValue())
@@ -436,7 +436,7 @@ script |TransportTextParsingService|
 		
 		my assertEqual("Foo", aTask's getName())
 		my assertEqual(true, aTask's _flaggedValue())
-		my assertEqual(projectFixture, aTask's _containingProjectValue())
+		my assertEqual(projectFixture, aTask's _assignedContainerValue())
 		my assertEqual(contextFixture, aTask's _contextValue())
 		my assertEqual(date "2015-04-15 12:00am", aTask's _deferDateValue())
 		my assertEqual(date "2015-05-15 5:00pm", aTask's _dueDateValue())
@@ -463,7 +463,7 @@ script |TransportTextParsingService|
 
 		assertEqual("Foo", aTask's getName())
 		assertEqual(true, aTask's _flaggedValue())
-		assertEqual(projectFixture, aTask's _containingProjectValue())
+		assertEqual(projectFixture, aTask's _assignedContainerValue())
 		assertEqual(contextFixture, aTask's _contextValue())
 		assertEqual(date "2014-04-15 12:00am", aTask's _deferDateValue())
 		assertEqual(date "2014-05-15 12:00am", aTask's _dueDateValue())
@@ -481,7 +481,7 @@ script |TransportTextParsingService|
 				
 		assertEqual("--Foo ::Non-existent Project 1 @Non-existent Context", aTask's getName())
 		assertEqual(true, aTask's _flaggedValue())
-		assertEqual(missing value, aTask's _containingProjectValue())
+		assertEqual(missing value, aTask's _assignedContainerValue())
 		assertEqual(missing value, aTask's _contextValue())
 		assertEqual(date "2015-04-15", aTask's _deferDateValue())
 		assertEqual(date "2015-05-15 5:00pm", aTask's _dueDateValue())

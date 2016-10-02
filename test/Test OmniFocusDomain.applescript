@@ -106,6 +106,9 @@ script |TaskProxy|
 			log "Error creating task: " & errMsg & errNum & taskFixture
 			error errMsg number errNum
 		end try
+		
+		set projectFixture to missing value
+		set contextFixture to missing value
 	end setUp
 	
 	on tearDown()
@@ -114,6 +117,18 @@ script |TaskProxy|
 				delete taskFixture
 			on error errMsg number errNum
 				log "Error deleting task: " & errMsg & errNum & taskFixture
+				error errMsg number errNum
+			end try
+			try
+				if projectFixture is not missing value then delete projectFixture
+			on error errMsg number errNum
+				log "Error deleting project: " & errMsg & errNum
+				error errMsg number errNum
+			end try
+			try
+				if contextFixture is not missing value then delete contextFixture
+			on error errMsg number errNum
+				log "Error deleting context: " & errMsg & errNum
 				error errMsg number errNum
 			end try
 		end tell
@@ -158,6 +173,39 @@ script |TaskProxy|
 		aTask's deferUntil(aDate)
 		should(aTask's hasDeferDate(), "Should be deferred.")
 	end script
+	
+	script |should not assign a task to project by default|
+		property parent : registerTestCase(me)
+
+		set aTask to domain's DocumentTaskRepository's _makeTaskProxy(taskFixture)
+		assertMissing(aTask's _containingProjectValue())
+		refute(aTask's isAssignedToAProject(), "Task should not appear to be assigned to a project.")
+	end script
+
+	script |should assign task to project in inbox based on assigned container|
+		property parent : registerTestCase(me)
+
+		set aTask to domain's DocumentTaskRepository's _makeTaskProxy(taskFixture)
+		set projectFixture to domain's ProjectRepository's create("Test Task Proxy – Assigns Task to Project with Context")
+		aTask's assignToProject(projectFixture)
+
+		assert(aTask's isAssignedToAProject(), "Task should appear to be assigned to a project before compacting.")
+		assert(projectFixture is aTask's _assignedContainerValue(), "Assigned container should be set to project fixture.")
+		assert(aTask's _containingProjectValue() is missing value, "Containing project value should not be set while not compacted.")
+		
+		--Local settings may change, so adding a context to the task so that compact will be guaranteed to clean up the task all the way.
+		set contextFixture to domain's ContextRepository's create("Test Task Proxy - Assigned Task to Project")
+		aTask's assignToContext(contextFixture)
+		
+		tell application "OmniFocus" to compact default document
+		
+		using terms from application "OmniFocus"
+			my refute(aTask's original is in inbox, "Task should no longer be in inbox once project and context assigned and compacted.")
+		end using terms from
+		should(aTask's isAssignedToAProject(), "Task should appear to be assigned to a project after compacting.")
+		assertEqual(projectFixture, aTask's _containingProjectValue())		
+	end script	
+	
 end script 
 
 script |TaskRepository Fixture|
@@ -217,8 +265,7 @@ script |DeferDailyRuleCommand|
 		set aTask to domain's TaskFactory's create()
 		aTask's setName("Foo")
 		
-		set aCommand to domain's DeferAnotherCommand's constructCommand()
-		set aCommand's frequency to "DAILY"
+		set aCommand to domain's makeDeferAnotherCommand("DAILY")
 		
 		tell aCommand to execute(aTask)
 
@@ -235,8 +282,7 @@ script |DeferDailyRuleCommand|
 		set aTask to domain's TaskFactory's create()
 		aTask's setName("Foo")
 		
-		set aCommand to domain's DeferAnotherCommand's constructCommand()
-		set aCommand's frequency to "WEEKLY"
+		set aCommand to domain's makeDeferAnotherCommand("WEEKLY")
 		
 		tell aCommand to execute(aTask)
 		
@@ -265,8 +311,7 @@ script |DueAgainCommand|
 		set aTask to domain's TaskFactory's create()
 		aTask's setName("Foo")
 	
-		set aCommand to domain's DueAgainCommand's constructCommand()
-		set aCommand's frequency to "DAILY"
+		set aCommand to domain's makeDueAgainCommand("DAILY")
 		
 		tell aCommand to execute(aTask)
 		
@@ -283,8 +328,7 @@ script |DueAgainCommand|
 		set aTask to domain's TaskFactory's create()
 		aTask's setName("Foo")
 	
-		set aCommand to domain's DueAgainCommand's constructCommand()
-		set aCommand's frequency to "WEEKLY"
+		set aCommand to domain's makeDueAgainCommand("WEEKLY")
 		
 		tell aCommand to execute(aTask)
 		
@@ -313,8 +357,7 @@ script |RepeatEveryPeriodCommand|
 		set aTask to domain's TaskFactory's create()
 		aTask's setName("Foo")
 	
-		set aCommand to domain's RepeatEveryCommand's constructCommand()
-		set aCommand's frequency to "DAILY"
+		set aCommand to domain's makeRepeatEveryCommand("DAILY")
 		
 		tell aCommand to execute(aTask)
 		
@@ -331,8 +374,7 @@ script |RepeatEveryPeriodCommand|
 		set aTask to domain's TaskFactory's create()
 		aTask's setName("Foo")
 
-		set aCommand to domain's RepeatEveryCommand's constructCommand()
-		set aCommand's frequency to "WEEKLY"
+		set aCommand to domain's makeRepeatEveryCommand("WEEKLY")
 		
 		tell aCommand to execute(aTask)
 		
@@ -529,7 +571,6 @@ script |DocumentTaskRepository|
 		
 		assertEqual(expectedTaskName, aTask's getName())
 		assertEqual(projectFixture, aTask's _assignedContainerValue())
---		assertEqual(projectFixture, aTask's _containingProjectValue())
 		assertEqual(contextFixture, aTask's _contextValue())
 		assertEqual(expectedDeferDate, aTask's _deferDateValue())
 		assertEqual(expectedDueDate, aTask's _dueDateValue())
@@ -574,8 +615,8 @@ script |DocumentTaskRepository|
 	script |add preserves values as provided|
 		property parent : registerTestCase(me)
 		
-		set expectedDueDate to dateutil's CalendarDate's (today at "5:00pm")'s asDate()
-		set expectedDeferDate to dateutil's CalendarDate's (yesterday at "12:00pm")'s asDate()
+		set expectedDueDate to dateutil's CalendarDateFactory's (today at "5:00pm")'s asDate()
+		set expectedDeferDate to dateutil's CalendarDateFactory's (yesterday at "12:00pm")'s asDate()
 		
 		set aTask to domain's TaskFactory's create()
 		set aTask's _name to "Test add preserves values as provided"
@@ -591,7 +632,6 @@ script |DocumentTaskRepository|
 
 		assertEqual("Test add preserves values as provided", aTask's getName())
 		assertEqual(projectFixture, aTask's _assignedContainerValue())
---		assertEqual(projectFixture, aTask's _containingProjectValue())
 		assertEQual(contextFixture, aTask's _contextValue())
 		assertEqual(expectedDeferDate, aTask's _deferDateValue())
 		assertEqual(expectedDueDate, aTask's _dueDateValue())
@@ -604,8 +644,8 @@ script |DocumentTaskRepository|
 		property parent : registerTestCase(me)
 	
 		set expectedTaskName to "Test create tasks with transport text"
-		set expectedDueDate to dateutil's CalendarDate's (today at "5:00pm")'s asDate()
-		set expectedDeferDate to dateutil's CalendarDate's (yesterday at "12:00pm")'s asDate()
+		set expectedDueDate to dateutil's CalendarDateFactory's (today at "5:00pm")'s asDate()
+		set expectedDeferDate to dateutil's CalendarDateFactory's (yesterday at "12:00pm")'s asDate()
 		set expectedNote to "A note."
 		
 		set transportText to expectedTaskName & "! ::" & PROJECT_FIXTURE_NAME & " @" & CONTEXT_FIXTURE_NAME & " $5m" & " //" & expectedNote

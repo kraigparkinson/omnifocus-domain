@@ -105,8 +105,8 @@ script |parse tasks into from transport text|
 		set expectedTaskName to "Test create tasks w/ transport text exact (hours only)"
 		set transportText to expectedTaskName & " ::" & PROJECT_FIXTURE_NAME & " @" & CONTEXT_FIXTURE_NAME & " #tuesday #wednesday at 5.00pm $5m"
 				
-		set expectedDeferDate to (dateutil's CalendarDate's parse from "tuesday")'s asDate()
-		set expectedDueDate to (dateutil's CalendarDate's parse from "wednesday" at "05:00:00PM")'s asDate()
+		set expectedDeferDate to (dateutil's CalendarDateFactory's parse from "tuesday")'s asDate()
+		set expectedDueDate to (dateutil's CalendarDateFactory's parse from "wednesday" at "05:00:00PM")'s asDate()
 		
 		testCreateTaskWithTransportText(expectedTaskName & " ::" & PROJECT_FIXTURE_NAME & " @" & CONTEXT_FIXTURE_NAME & " #tuesday #wednesday at 5pm $5m //A note.", expectedTaskName, projectFixture, contextFixture, expectedDeferDate, expectedDueDate, 5, "A note.")
 		testCreateTaskWithTransportText(expectedTaskName & " ::" & PROJECT_FIXTURE_NAME & " @" & CONTEXT_FIXTURE_NAME & " #tuesday #wednesday at 17 $5m //A note.", expectedTaskName, projectFixture, contextFixture, expectedDeferDate, expectedDueDate, 5, "A note.")
@@ -118,8 +118,8 @@ script |parse tasks into from transport text|
 		set expectedTaskName to "Test transport text w/ transport text exact at top of hour"
 		set transportText to expectedTaskName & " ::" & PROJECT_FIXTURE_NAME & " @" & CONTEXT_FIXTURE_NAME & " #tuesday #wednesday at 5.00pm $5m"
 				
-		set expectedDeferDate to (dateutil's CalendarDate's parse from "tuesday")'s asDate()
-		set expectedDueDate to (dateutil's CalendarDate's parse from "wednesday" at "05:00:00PM")'s asDate()
+		set expectedDeferDate to (dateutil's CalendarDateFactory's parse from "tuesday")'s asDate()
+		set expectedDueDate to (dateutil's CalendarDateFactory's parse from "wednesday" at "05:00:00PM")'s asDate()
 	
 		testCreateTaskWithTransportText(expectedTaskName & " ::" & PROJECT_FIXTURE_NAME & " @" & CONTEXT_FIXTURE_NAME & " #tuesday #wednesday at 5.00pm $5m //A note.", expectedTaskName, projectFixture, contextFixture, expectedDeferDate, expectedDueDate, 5, "A note.")
 	end script
@@ -131,7 +131,7 @@ script |parse tasks into from transport text|
 		
 		set expectedDeferDate to date "2015-09-18 08:30 AM"
 
-		set expectedCalendarDueDate to dateutil's CalendarDate's parse from "wednesday"
+		set expectedCalendarDueDate to dateutil's CalendarDateFactory's parse from "wednesday"
 		set expectedDueDate to date "5:00 PM" of expectedCalendarDueDate's asDate()		
 
 		set expectedEstimatedMinutes to 5
@@ -147,10 +147,10 @@ script |parse tasks into from transport text|
 		set expectedTaskName to "Test create tasks w/ transport text exact (hours only)"
 		set transportText to expectedTaskName & " ::" & PROJECT_FIXTURE_NAME & " @" & CONTEXT_FIXTURE_NAME & " #tuesday #wednesday at 5.00pm $5m"
 			
-		set expectedDeferDate to (dateutil's CalendarDate's parse from "tuesday")'s asDate()
-		set expectedDueDate to (dateutil's CalendarDate's parse from "wednesday" at "05:00:00PM")'s asDate()
+		set expectedDeferDate to (dateutil's CalendarDateFactory's parse from "tuesday")'s asDate()
+		set expectedDueDate to (dateutil's CalendarDateFactory's parse from "wednesday" at "05:00:00PM")'s asDate()
 
-		testCreateTaskWithTransportText(expectedTaskName & " ::" & PROJECT_FIXTURE_NAME & " @" & CONTEXT_FIXTURE_NAME & " #tuesday #wednesday at 5:00pm $5m //A note.", expectedTaskName & ":00pm", projectFixture, contextFixture, expectedDeferDate, (dateutil's CalendarDate's parse from "wednesday" at "05:00:00AM")'s asDate(), 5, "A note.")
+		testCreateTaskWithTransportText(expectedTaskName & " ::" & PROJECT_FIXTURE_NAME & " @" & CONTEXT_FIXTURE_NAME & " #tuesday #wednesday at 5:00pm $5m //A note.", expectedTaskName & ":00pm", projectFixture, contextFixture, expectedDeferDate, (dateutil's CalendarDateFactory's parse from "wednesday" at "05:00:00AM")'s asDate(), 5, "A note.")
 	end script
 	
 	script |create tasks with transport text with inexact items (1 level deep)|

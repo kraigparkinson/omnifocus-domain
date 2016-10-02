@@ -10,10 +10,10 @@ property version : "1.0.0"
 (*! @abstract <em>[text]</em> OmniFocusDomain's id. *)
 property id : "com.kraigparkinson.OmniFocusDomain"
 
-property textutil : script "com.kraigparkinson/ASText"
-property dateutil : script "com.kraigparkinson/ASDate"
-property ddd : script "com.kraigparkinson/ASDomainDrivenDesign"
-property collections : script "com.kraigparkinson/ASCollections"
+use textutil : script "com.kraigparkinson/ASText"
+use dateutil : script "com.kraigparkinson/ASDate"
+use ddd : script "com.kraigparkinson/ASDomainDrivenDesign"
+use collections : script "com.kraigparkinson/ASCollections"
 
 property _taskRepository : missing value
 property _projectRepository : missing value
@@ -386,16 +386,6 @@ script TaskFactory
 end script
 
 script TaskCommand
-	on make new TaskCommand with properties commandProperties as record : {}
-		copy me to aCommand
-		return aCommand
-	end make
-	
-	on constructCommand()
-		copy me to aCommand
-		return aCommand
-	end constructCommand
-	
 	on execute(aTask)
 		error "Abstract method not implemented: execute" from me
 	end execute	
@@ -434,51 +424,62 @@ script AppendNoteCommand
 	end defineNote
 end script
 
-script DeferAnotherCommand
-	property parent : TaskCommand
-	property frequency : missing value
+on makeDeferAnotherCommand(aFreq)
+	script DeferAnotherCommand
+		property parent : TaskCommand
+		property class : "DeferAnotherCommand"
+		property frequency : aFreq
 	
-	on execute(aTask)
-		if frequency is "DAILY" then
-			aTask's deferDaily()
-		else if frequency is "WEEKLY" then
-			aTask's deferWeekly()
-		else if frequency is "MONTHLY" then 
-			aTask's deferMonthly()
-		end
-	end execute
-end script
+		on execute(aTask)
+			if frequency is "DAILY" then
+				aTask's deferDaily()
+			else if frequency is "WEEKLY" then
+				aTask's deferWeekly()
+			else if frequency is "MONTHLY" then 
+				aTask's deferMonthly()
+			end
+		end execute
+	end script
+	return DeferAnotherCommand
+end makeDeferAnotherCommand
 
-script DueAgainCommand
-	property parent : TaskCommand
-	property frequency : missing value
+on makeDueAgainCommand(aFreq)
+	script DueAgainCommand
+		property parent : TaskCommand
+		property class : "DueAgainCommand"
+		property frequency : aFreq
 	
-	on execute(aTask)
-		if frequency is "DAILY" then
-			aTask's dueAgainDaily()
-		else if frequency is "WEEKLY" then
-			aTask's dueAgainWeekly()
-		else if frequency is "MONTHLY" then 
-			aTask's dueAgainMonthly()
-		end
-	end execute	
-end script
+		on execute(aTask)
+			if frequency is "DAILY" then
+				aTask's dueAgainDaily()
+			else if frequency is "WEEKLY" then
+				aTask's dueAgainWeekly()
+			else if frequency is "MONTHLY" then 
+				aTask's dueAgainMonthly()
+			end
+		end execute	
+	end script
+	return DueAgainCommand
+end makeDueAgainCommand
 
-script RepeatEveryCommand
-	property parent : TaskCommand
-	property frequency : missing value
+on makeRepeatEveryCommand(aFreq)
+	script RepeatEveryCommand
+		property parent : TaskCommand
+		property frequency : aFreq
 	
-	on execute(aTask)
-		if frequency is "DAILY" then
-			aTask's repeatDaily()
-		else if frequency is "WEEKLY" then
-			aTask's repeatWeekly()
-		else if frequency is "MONTHLY" then 
-			aTask's repeatMonthly()
-		end
+		on execute(aTask)
+			if frequency is "DAILY" then
+				aTask's repeatDaily()
+			else if frequency is "WEEKLY" then
+				aTask's repeatWeekly()
+			else if frequency is "MONTHLY" then 
+				aTask's repeatMonthly()
+			end
 
-	end execute
-end script
+		end execute
+	end script
+	return RepeatEveryCommand
+end makeRepeatEveryCommand
 
 script FlaggedSpecification
 	property parent : ddd's AbstractSpecification
@@ -756,16 +757,18 @@ script DocumentTaskRepository
 			end assignToContext
 			
 			on isAssignedToAProject()
+--				return (_containingProjectValue() is not missing value) or ((original's in inbox) and (_assignedContainerValue() is not missing value))		
 				return (_containingProjectValue() is not missing value) or ((original's in inbox) and (_assignedContainerValue() is not missing value))		
 			end isAssignedToAProject
 	
 			on assignToProject(aProject)
 				using terms from application "OmniFocus"
---					if (original's in inbox) then 
---						set original's assigned container to aProject
---					else 
+					if (original's in inbox) then 
+						set original's assigned container to aProject
+--						tell application "OmniFocus" to compact		
+					else 
 						move original to end of tasks of aProject
---					end if
+					end if
 				end using terms from
 --				set original's project to aProject
 			end assignToProject
@@ -911,29 +914,31 @@ script DocumentTaskRepository
 	end makeTaskBuilder
 	
 	on addTask(aTask)
---		if (aTask's name is "TaskEntity")
+--		if (aTask's class is "Task Entity")
 		
-		set aBuilder to makeTaskBuilder()
+			set aBuilder to makeTaskBuilder()
 		
-		aBuilder's addName(aTask's getName())
-		aBuilder's addProject(aTask's _assignedContainerValue())
-		aBuilder's addContext(aTask's _contextValue())
-		aBuilder's addDeferDate(aTask's _deferDateValue())
-		aBuilder's addDueDate(aTask's _dueDateValue())
-		aBuilder's addEstimatedMinutes(aTask's _estimatedMinutesValue())
-		aBuilder's addFlagged(aTask's _flaggedValue())
-		aBuilder's addNote(aTask's _noteValue())
+			aBuilder's addName(aTask's getName())
+			aBuilder's addProject(aTask's _assignedContainerValue())
+			aBuilder's addContext(aTask's _contextValue())
+			aBuilder's addDeferDate(aTask's _deferDateValue())
+			aBuilder's addDueDate(aTask's _dueDateValue())
+			aBuilder's addEstimatedMinutes(aTask's _estimatedMinutesValue())
+			aBuilder's addFlagged(aTask's _flaggedValue())
+			aBuilder's addNote(aTask's _noteValue())
 		
-		tell default document of application "OmniFocus"
-			set newTask to (make new inbox task with properties {name:aTask's getName()})
-		end tell
+			tell default document of application "OmniFocus"
+				set newTask to (make new inbox task with properties {name:aTask's getName()})
+			end tell
 		
-		aBuilder's fillTask(newTask)
+			aBuilder's fillTask(newTask)
 		
-		return _makeTaskProxy(newTask) 
---		else if (anEntity's name is "TaskProxy")
---			set original to findById()
---			error "Attempting to save TaskProxy."
+			return _makeTaskProxy(newTask) 
+
+--		else if (aTask's class is "Task Proxy")
+			--			set original to findById()
+			--			error "Attempting to save TaskProxy."			
+--		end if
 --		else 
 --			error "Attempting to save unsupported type."
 --		end if
@@ -1242,22 +1247,17 @@ script TransportTextParsingService
 			script Expression
 				property tokenType : missing value
 	
-				on makeExpression(aType)
-					copy me to anExpression
-					set anExpression's tokenType to aType
-					return anExpression
-				end makeExpression
-	
 				on interpret(aTask, ttVariables)
 				end interpret	
 			end 
 
-			on TaskNameExpression()
+			on makeTaskNameExpression()
 				script _TaskNameExpression
 					property parent : Expression
+					property tokenType : TransportTextTokenTypeEnum's NAME_TYPE
 
 					on interpret(aTask, ttVariables)
-						set taskNameToken to ttVariables's getValue(TransportTextTokenTypeEnum's NAME_TYPE)
+						set taskNameToken to ttVariables's getValue(tokenType)
 			
 						aTask's setName(taskNameToken)
 
@@ -1265,30 +1265,32 @@ script TransportTextParsingService
 					end interpret
 				end script
 	
-				return _TaskNameExpression's makeExpression(TransportTextTokenTypeEnum's NAME_TYPE)
-			end TaskNameExpression
+				return _TaskNameExpression
+			end makeTaskNameExpression
 
-			on FlaggedExpression()
+			on makeFlaggedExpression()
 				script _FlaggedExpression
 					property parent : Expression
+					property tokenType : TransportTextTokenTypeEnum's FLAG_TYPE
 
 					on interpret(aTask, ttVariables)
-						set flaggedToken to ttVariables's getValue(TransportTextTokenTypeEnum's FLAG_TYPE)
+						set flaggedToken to ttVariables's getValue(tokenType)
 				
 						aTask's setFlag()
 			
 						return missing value
 					end interpret
 				end script
-				return _FlaggedExpression's makeExpression(TransportTextTokenTypeEnum's FLAG_TYPE)
-			end FlaggedExpression
+				return _FlaggedExpression
+			end makeFlaggedExpression
 	
-			on AssignedContainerNameExpression()
+			on makeAssignedContainerNameExpression()
 				script _AssignedContainerNameExpression
 					property parent : Expression
+					property tokenType : TransportTextTokenTypeEnum's PROJECT_TYPE
 
 					on interpret(aTask, ttVariables)
-						set projectToken to ttVariables's getValue(TransportTextTokenTypeEnum's PROJECT_TYPE)
+						set projectToken to ttVariables's getValue(tokenType)
 						
 						set ttRemainder to missing value 
 			
@@ -1305,15 +1307,16 @@ script TransportTextParsingService
 						return ttRemainder		
 					end interpret		
 				end script
-				return _AssignedContainerNameExpression's makeExpression(TransportTextTokenTypeEnum's PROJECT_TYPE)
-			end AssignedContainerNameExpression
+				return _AssignedContainerNameExpression
+			end makeAssignedContainerNameExpression
 	
-			on ContextNameExpression()
+			on makeContextNameExpression()
 				script _ContextNameExpression
 					property parent : Expression
+					property tokenType : TransportTextTokenTypeEnum's CONTEXT_TYPE
 
 					on interpret(aTask, ttVariables)
-						set contextToken to ttVariables's getValue(TransportTextTokenTypeEnum's CONTEXT_TYPE)
+						set contextToken to ttVariables's getValue(tokenType)
 
 						set ttRemainder to missing value
 			
@@ -1330,57 +1333,60 @@ script TransportTextParsingService
 						return ttRemainder
 					end interpret
 				end script
-				return _ContextNameExpression's makeExpression(TransportTextTokenTypeEnum's CONTEXT_TYPE)
+				return _ContextNameExpression
 
-			end ContextNameExpression
+			end makeContextNameExpression
 
-			on DueDateExpression()
+			on makeDueDateExpression()
 				script _DueDateExpression
 					property parent : Expression
+					property tokenType : TransportTextTokenTypeEnum's DUE_DATE_TYPE
 			
 					on defaultDueTime()
 						return "05:00PM"
 					end defaultDueTime
 			
 					on interpret(aTask, ttVariables)
-						set aDueDateExpression to ttVariables's getValue(TransportTextTokenTypeEnum's DUE_DATE_TYPE)
+						set aDueDateExpression to ttVariables's getValue(tokenType)
 								
 						if (aTask's isNotDue()) then 
-							set dueDate to parse of (dateutil's CalendarDate) from aDueDateExpression at defaultDueTime()
+							set dueDate to parse of (dateutil's CalendarDateFactory) from aDueDateExpression at defaultDueTime()
 							aTask's dueOn(dueDate's asDate())
 						end if
 						return missing value
 					end interpret
 			
 				end script
-				return _DueDateExpression's makeExpression(TransportTextTokenTypeEnum's DUE_DATE_TYPE)
-			end DueDateExpression
+				return _DueDateExpression
+			end makeDueDateExpression
 
-			on DeferDateExpression()
+			on makeDeferDateExpression()
 				script _DeferDateExpression
 					property parent : Expression
+					property tokenType : TransportTextTokenTypeEnum's DEFER_DATE_TYPE
 
 					on defaultDeferTime()
 						return "12:00:00AM"
 					end defaultDeferTime
 
 					on interpret(aTask, ttVariables)
-						set aDeferDateExpression to ttVariables's getValue(TransportTextTokenTypeEnum's DEFER_DATE_TYPE)
+						set aDeferDateExpression to ttVariables's getValue(tokenType)
 
 						if (aTask's isNotDeferred())
-							set deferDate to parse of (dateutil's CalendarDate) from aDeferDateExpression at defaultDeferTime()
+							set deferDate to parse of (dateutil's CalendarDateFactory) from aDeferDateExpression at defaultDeferTime()
 				
 							aTask's deferUntil(deferDate's asDate())
 						end if 
 						return missing value
 					end interpret
 				end script
-				return _DeferDateExpression's makeExpression(TransportTextTokenTypeEnum's DEFER_DATE_TYPE)
-			end DeferDateExpression
+				return _DeferDateExpression
+			end makeDeferDateExpression
 
-			on EstimateExpression()
+			on makeEstimateExpression()
 				script _EstimateExpression
 					property parent : Expression
+					property tokenType : TransportTextTokenTypeEnum's ESTIMATE_TYPE
 			
 					on parseEstimate(theEstimate)
 						if length of theEstimate is equal to 1 then
@@ -1401,7 +1407,7 @@ script TransportTextParsingService
 					end parseEstimate
 
 					on interpret(aTask, ttVariables)
-						set anEstimateExpression to ttVariables's getValue(TransportTextTokenTypeEnum's ESTIMATE_TYPE)
+						set anEstimateExpression to ttVariables's getValue(tokenType)
 			
 						if (ContainsEstimateSpecification's notSpec()'s isSatisfiedBy(aTask))
 							aTask's setEstimate(my parseEstimate(anEstimateExpression))
@@ -1409,15 +1415,16 @@ script TransportTextParsingService
 						return missing value
 					end interpret
 				end script
-				return _EstimateExpression's makeExpression(TransportTextTokenTypeEnum's ESTIMATE_TYPE)
+				return _EstimateExpression
 			end EstimateExpression
 
-			on NoteExpression()
+			on makeNoteExpression()
 				script _NoteExpression
 					property parent : Expression
+					property tokenType : TransportTextTokenTypeEnum's NOTE_TYPE
 
 					on interpret(aTask, ttVariables)
-						set aNoteExpression to ttVariables's getValue(TransportTextTokenTypeEnum's NOTE_TYPE)
+						set aNoteExpression to ttVariables's getValue(tokenType)
 			
 						script ExpressionAppendNoteCommand
 							property parent : AppendNoteCommand
@@ -1427,27 +1434,27 @@ script TransportTextParsingService
 							end defineNote
 						end script
 		
-						set aCommand to ExpressionAppendNoteCommand's constructCommand()
+						set aCommand to ExpressionAppendNoteCommand
 						tell aCommand to execute(aTask)
 			
 						return missing value
 					end interpret
 				end script
-				return _NoteExpression's makeExpression(TransportTextTokenTypeEnum's NOTE_TYPE)
-			end NoteExpression
+				return _NoteExpression
+			end makeNoteExpression
 	
 			on interpret(aTask, ttVariables)		
 				set ttRemainders to missing value
 		
 				set expressions to { }
-				set end of expressions to TaskNameExpression()
-				set end of expressions to FlaggedExpression()
-				set end of expressions to AssignedContainerNameExpression()
-				set end of expressions to ContextNameExpression()
-				set end of expressions to DeferDateExpression()
-				set end of expressions to DueDateExpression()
-				set end of expressions to EstimateExpression()
-				set end of expressions to NoteExpression()	
+				set end of expressions to makeTaskNameExpression()
+				set end of expressions to makeFlaggedExpression()
+				set end of expressions to makeAssignedContainerNameExpression()
+				set end of expressions to makeContextNameExpression()
+				set end of expressions to makeDeferDateExpression()
+				set end of expressions to makeDueDateExpression()
+				set end of expressions to makeEstimateExpression()
+				set end of expressions to makeNoteExpression()	
 		
 				repeat with expr in expressions
 					set aKey to expr's tokenType
@@ -1468,7 +1475,7 @@ script TransportTextParsingService
 				if ttRemainders is not missing value then 
 					aTask's setName("--" & aTask's getName() & ttRemainders)
 				end if 
-				tell application "OmniFocus" to compact		
+--				tell application "OmniFocus" to compact		
 			end interpret
 		end script
 
