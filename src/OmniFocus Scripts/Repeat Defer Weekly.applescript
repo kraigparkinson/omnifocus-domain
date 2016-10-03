@@ -15,7 +15,7 @@ tell application "OmniFocus"
 			end if
 		
 			repeat with selectedTask in validSelectedItemsList
-				set aCommand to domain's makeDeferAnotherCommand("WEEKLY")
+				set aCommand to domain's CommandFactory's makeDeferAnotherCommand("WEEKLY")
 				tell aCommand to execute(selectedTask)
 			end repeat
 		end tell

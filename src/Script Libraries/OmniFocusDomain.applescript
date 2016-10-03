@@ -385,101 +385,8 @@ script TaskFactory
 	end create
 end script
 
-script TaskCommand
-	on execute(aTask)
-		error "Abstract method not implemented: execute" from me
-	end execute	
-end script
-
-script MacroTaskCommand
-	property parent : TaskCommand
-	property commands : { }
-	
-	on execute(aTask)
-		repeat with command in commands
-			tell command to execute(aTask)
-		end repeat
-	end execute
-end script
-
-script MarkCompleteCommand
-	property parent : TaskCommand
-	property name : "Mark complete"
-
-	on execute(aTask)
-		aTask's markComplete()
-	end execute
-end script
-
-script AppendNoteCommand
-	property parent : TaskCommand
-
-	on execute(aTask)
-		set additionalNoteText to defineNote()
-		aTask's appendToNote(additionalNoteText)
-	end execute
-	
-	on defineNote()
-		return ""
-	end defineNote
-end script
-
-on makeDeferAnotherCommand(aFreq)
-	script DeferAnotherCommand
-		property parent : TaskCommand
-		property class : "DeferAnotherCommand"
-		property frequency : aFreq
-	
-		on execute(aTask)
-			if frequency is "DAILY" then
-				aTask's deferDaily()
-			else if frequency is "WEEKLY" then
-				aTask's deferWeekly()
-			else if frequency is "MONTHLY" then 
-				aTask's deferMonthly()
-			end
-		end execute
-	end script
-	return DeferAnotherCommand
-end makeDeferAnotherCommand
-
-on makeDueAgainCommand(aFreq)
-	script DueAgainCommand
-		property parent : TaskCommand
-		property class : "DueAgainCommand"
-		property frequency : aFreq
-	
-		on execute(aTask)
-			if frequency is "DAILY" then
-				aTask's dueAgainDaily()
-			else if frequency is "WEEKLY" then
-				aTask's dueAgainWeekly()
-			else if frequency is "MONTHLY" then 
-				aTask's dueAgainMonthly()
-			end
-		end execute	
-	end script
-	return DueAgainCommand
-end makeDueAgainCommand
-
-on makeRepeatEveryCommand(aFreq)
-	script RepeatEveryCommand
-		property parent : TaskCommand
-		property frequency : aFreq
-	
-		on execute(aTask)
-			if frequency is "DAILY" then
-				aTask's repeatDaily()
-			else if frequency is "WEEKLY" then
-				aTask's repeatWeekly()
-			else if frequency is "MONTHLY" then 
-				aTask's repeatMonthly()
-			end
-
-		end execute
-	end script
-	return RepeatEveryCommand
-end makeRepeatEveryCommand
+script SpecificationFactory
+end script --SpecificationFactory
 
 script FlaggedSpecification
 	property parent : ddd's AbstractSpecification
@@ -488,7 +395,7 @@ script FlaggedSpecification
 	on isSatisfiedBy(aTask)
 		aTask's hasFlagSet()
 	end isSatisfiedBy
-end script
+end script --FlaggedSpecification
 
 script TaskHasProjectSpecification
 	property parent : ddd's AbstractSpecification
@@ -497,7 +404,7 @@ script TaskHasProjectSpecification
 	on isSatisfiedBy(obj)
 		aTask's isAssignedToAProject() 
 	end isSatisfiedBy
-end script
+end script --TaskHasProjectSpecification
 
 script TaskHasAssignedContainerSpecification
 	property parent : ddd's AbstractSpecification
@@ -513,7 +420,7 @@ script TaskHasAssignedContainerSpecification
 
 		aTask's isAssignedToAProject()
 	end isSatisfiedBy
-end script
+end script --TaskHasAssignedContainerSpecification
 
 script TaskHasContextSpecification
 	property parent : ddd's AbstractSpecification
@@ -522,7 +429,7 @@ script TaskHasContextSpecification
 	on isSatisfiedBy(aTask)
 		aTask's hasContext()
 	end isSatisfiedBy
-end script
+end script --TaskHasContextSpecification
 
 script ContainsDeferDateSpecification
 	property parent : ddd's AbstractSpecification
@@ -531,7 +438,7 @@ script ContainsDeferDateSpecification
 	on isSatisfiedBy(aTask)
 		aTask's hasDeferDate()
 	end isSatisfiedBy
-end script
+end script --ContainsDeferDateSpecification
 
 script ContainsDueDateSpecification
 	property parent : ddd's AbstractSpecification
@@ -540,7 +447,7 @@ script ContainsDueDateSpecification
 	on isSatisfiedBy(aTask)
 		aTask's hasDueDate()
 	end isSatisfiedBy
-end script
+end script --ContainsDueDateSpecification
 
 script ContainsEstimateSpecification
 	property parent : ddd's AbstractSpecification
@@ -549,7 +456,7 @@ script ContainsEstimateSpecification
 	on isSatisfiedBy(aTask)
 		aTask's hasEstimate()
 	end isSatisfiedBy
-end script
+end script --ContainsEstimateSpecification
 
 script ContainsNoteSpecification
 	property parent : ddd's AbstractSpecification
@@ -558,7 +465,7 @@ script ContainsNoteSpecification
 	on isSatisfiedBy(aTask)
 		return aTask's hasNote()
 	end isSatisfiedBy
-end script
+end script --ContainsNoteSpecification
 
 script MatchingNameTaskSpecification
 	property parent : ddd's AbstractSpecification
@@ -570,7 +477,7 @@ script MatchingNameTaskSpecification
 		set theResult to ((candidateTaskName) equals taskName)
 		return theResult
 	end isSatisfiedBy
-end script 
+end script --MatchingNameTaskSpecification
 
 script UnparsedTaskSpecification
 	property parent : ddd's AbstractSpecification
@@ -579,7 +486,7 @@ script UnparsedTaskSpecification
 	on isSatisfiedBy(aTask)
 		return (aTask's getName()) starts with "--"
 	end isSatisfiedBy
-end script
+end script --UnparsedTaskSpecification
 
 script NonrepeatingTaskSpecification
 	property parent : ddd's AbstractSpecification
@@ -588,7 +495,7 @@ script NonrepeatingTaskSpecification
 	on isSatisfiedBy(aTask)
 		return not aTask's isRepeating()
 	end isSatisfiedBy
-end script
+end script --NonrepeatingTaskSpecification
 
 script TaskRepository
 	on addTask(aTask)
@@ -1129,21 +1036,130 @@ on contextRepositoryInstance()
 	return _contextRepository
 end contextRepositoryInstance
 
-script SetContextCommand
-	property parent : TaskCommand
-	property contextName : missing value
-	property name : "Set context"
+script CommandFactory
+	script TaskCommand
+		on execute(aTask)
+			error "Abstract method not implemented: execute"
+		end execute	
+	end script
+
+	on makeMacroTaskCommand(aCommandList as list)
+		if aCommandList is missing value then error "Must have a list"
+		script MacroTaskCommand
+			property parent : TaskCommand
+			property commands : aCommandList
 	
-	on execute(aTask)
-		set aContext to ContextRepository's findByName(contextName)
-		if (aContext is missing value) then 
-			error "Context, " & contextName & ", not found"
-		end if
+			on execute(aTask)
+				repeat with command in commands
+					tell command to execute(aTask)
+				end repeat
+			end execute
+		end script
 		
-		log "Command, " & name & ", assigning " & contextName & " to task."
-		tell aTask to assignToContext(aContext)
-	end execute
-end script
+		return MacroTaskCommand
+	end makeMacroTaskCommand
+	
+	on makeMarkCompleteCommand()
+		script MarkCompleteCommand
+			property parent : TaskCommand
+			property name : "Mark complete"
+
+			on execute(aTask)
+				aTask's markComplete()
+			end execute
+		end script
+		return MarkCompleteCommand
+	end makeMarkCompleteCommand
+	
+	on makeAppendNoteCommand(aNote)
+		script AppendNoteCommand
+			property parent : TaskCommand
+			property note_text : aNote
+
+			on execute(aTask)
+				aTask's appendToNote(note_text)
+			end execute	
+		end script
+		return AppendNoteCommand
+	end makeAppendNoteCommand
+	
+	on makeDeferAnotherCommand(aFreq)
+		script DeferAnotherCommand
+			property parent : TaskCommand
+			property class : "DeferAnotherCommand"
+			property frequency : aFreq
+	
+			on execute(aTask)
+				if frequency is "DAILY" then
+					aTask's deferDaily()
+				else if frequency is "WEEKLY" then
+					aTask's deferWeekly()
+				else if frequency is "MONTHLY" then 
+					aTask's deferMonthly()
+				end
+			end execute
+		end script
+		return DeferAnotherCommand
+	end makeDeferAnotherCommand
+
+	on makeDueAgainCommand(aFreq)
+		script DueAgainCommand
+			property parent : TaskCommand
+			property class : "DueAgainCommand"
+			property frequency : aFreq
+	
+			on execute(aTask)
+				if frequency is "DAILY" then
+					aTask's dueAgainDaily()
+				else if frequency is "WEEKLY" then
+					aTask's dueAgainWeekly()
+				else if frequency is "MONTHLY" then 
+					aTask's dueAgainMonthly()
+				end
+			end execute	
+		end script
+		return DueAgainCommand
+	end makeDueAgainCommand
+
+	on makeRepeatEveryCommand(aFreq)
+		script RepeatEveryCommand
+			property parent : TaskCommand
+			property frequency : aFreq
+	
+			on execute(aTask)
+				if frequency is "DAILY" then
+					aTask's repeatDaily()
+				else if frequency is "WEEKLY" then
+					aTask's repeatWeekly()
+				else if frequency is "MONTHLY" then 
+					aTask's repeatMonthly()
+				end
+
+			end execute
+		end script
+		return RepeatEveryCommand
+	end makeRepeatEveryCommand
+	
+	on makeSetContextCommand(aContextName)
+		script SetContextCommand
+			property parent : TaskCommand
+			property contextName : aContextName
+			property name : "Set context"
+	
+			on execute(aTask)
+				set aContext to ContextRepository's findByName(contextName)
+				if (aContext is missing value) then 
+					error "Context, " & contextName & ", not found"
+				end if
+		
+				log "Command, " & name & ", assigning " & contextName & " to task."
+				tell aTask to assignToContext(aContext)
+			end execute
+		end script
+		return SetContextCommand
+	end makeSetContextCommand
+end script --CommandFactory
+
 
 script TransportTextParsingService
 
@@ -1424,17 +1440,8 @@ script TransportTextParsingService
 					property tokenType : TransportTextTokenTypeEnum's NOTE_TYPE
 
 					on interpret(aTask, ttVariables)
-						set aNoteExpression to ttVariables's getValue(tokenType)
-			
-						script ExpressionAppendNoteCommand
-							property parent : AppendNoteCommand
-	
-							on defineNote()
-								return aNoteExpression
-							end defineNote
-						end script
-		
-						set aCommand to ExpressionAppendNoteCommand
+						set aNoteExpression to ttVariables's getValue(tokenType)		
+						set aCommand to CommandFactory's makeAppendNoteCommand(aNoteExpression)
 						tell aCommand to execute(aTask)
 			
 						return missing value

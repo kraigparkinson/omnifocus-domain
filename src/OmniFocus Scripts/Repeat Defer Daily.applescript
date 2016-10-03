@@ -23,7 +23,7 @@ on run
 	end if
 
 	repeat with selectedTask in validSelectedItemsList
-		set aCommand to domain's makeDeferAnotherCommand("DAILY")
+		set aCommand to domain's CommandFactory's makeDeferAnotherCommand("DAILY")
 		tell aCommand to execute(selectedTask)
 	end repeat
 	

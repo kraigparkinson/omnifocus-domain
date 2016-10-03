@@ -265,7 +265,7 @@ script |DeferDailyRuleCommand|
 		set aTask to domain's TaskFactory's create()
 		aTask's setName("Foo")
 		
-		set aCommand to domain's makeDeferAnotherCommand("DAILY")
+		set aCommand to domain's CommandFactory's makeDeferAnotherCommand("DAILY")
 		
 		tell aCommand to execute(aTask)
 
@@ -282,7 +282,7 @@ script |DeferDailyRuleCommand|
 		set aTask to domain's TaskFactory's create()
 		aTask's setName("Foo")
 		
-		set aCommand to domain's makeDeferAnotherCommand("WEEKLY")
+		set aCommand to domain's CommandFactory's makeDeferAnotherCommand("WEEKLY")
 		
 		tell aCommand to execute(aTask)
 		
@@ -311,7 +311,7 @@ script |DueAgainCommand|
 		set aTask to domain's TaskFactory's create()
 		aTask's setName("Foo")
 	
-		set aCommand to domain's makeDueAgainCommand("DAILY")
+		set aCommand to domain's CommandFactory's makeDueAgainCommand("DAILY")
 		
 		tell aCommand to execute(aTask)
 		
@@ -328,7 +328,7 @@ script |DueAgainCommand|
 		set aTask to domain's TaskFactory's create()
 		aTask's setName("Foo")
 	
-		set aCommand to domain's makeDueAgainCommand("WEEKLY")
+		set aCommand to domain's CommandFactory's makeDueAgainCommand("WEEKLY")
 		
 		tell aCommand to execute(aTask)
 		
@@ -357,7 +357,7 @@ script |RepeatEveryPeriodCommand|
 		set aTask to domain's TaskFactory's create()
 		aTask's setName("Foo")
 	
-		set aCommand to domain's makeRepeatEveryCommand("DAILY")
+		set aCommand to domain's CommandFactory's makeRepeatEveryCommand("DAILY")
 		
 		tell aCommand to execute(aTask)
 		
@@ -374,7 +374,7 @@ script |RepeatEveryPeriodCommand|
 		set aTask to domain's TaskFactory's create()
 		aTask's setName("Foo")
 
-		set aCommand to domain's makeRepeatEveryCommand("WEEKLY")
+		set aCommand to domain's CommandFactory's makeRepeatEveryCommand("WEEKLY")
 		
 		tell aCommand to execute(aTask)
 		
