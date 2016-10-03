@@ -389,7 +389,7 @@ script SpecificationFactory
 end script --SpecificationFactory
 
 script FlaggedSpecification
-	property parent : ddd's AbstractSpecification
+	property parent : ddd's DefaultSpecification
 	property name : "flagged"
 	
 	on isSatisfiedBy(aTask)
@@ -398,7 +398,7 @@ script FlaggedSpecification
 end script --FlaggedSpecification
 
 script TaskHasProjectSpecification
-	property parent : ddd's AbstractSpecification
+	property parent : ddd's DefaultSpecification
 	property name : "has project"
 	
 	on isSatisfiedBy(obj)
@@ -407,7 +407,7 @@ script TaskHasProjectSpecification
 end script --TaskHasProjectSpecification
 
 script TaskHasAssignedContainerSpecification
-	property parent : ddd's AbstractSpecification
+	property parent : ddd's DefaultSpecification
 	property name : "has assignd container"
 	
 	on isSatisfiedBy(obj)
@@ -423,7 +423,7 @@ script TaskHasAssignedContainerSpecification
 end script --TaskHasAssignedContainerSpecification
 
 script TaskHasContextSpecification
-	property parent : ddd's AbstractSpecification
+	property parent : ddd's DefaultSpecification
 	property name : "has context"
 
 	on isSatisfiedBy(aTask)
@@ -432,7 +432,7 @@ script TaskHasContextSpecification
 end script --TaskHasContextSpecification
 
 script ContainsDeferDateSpecification
-	property parent : ddd's AbstractSpecification
+	property parent : ddd's DefaultSpecification
 	property name : "has defer date"
 	
 	on isSatisfiedBy(aTask)
@@ -441,7 +441,7 @@ script ContainsDeferDateSpecification
 end script --ContainsDeferDateSpecification
 
 script ContainsDueDateSpecification
-	property parent : ddd's AbstractSpecification
+	property parent : ddd's DefaultSpecification
 	property name : "has due date"
 	
 	on isSatisfiedBy(aTask)
@@ -450,7 +450,7 @@ script ContainsDueDateSpecification
 end script --ContainsDueDateSpecification
 
 script ContainsEstimateSpecification
-	property parent : ddd's AbstractSpecification
+	property parent : ddd's DefaultSpecification
 	property name : "has estimate"
 	
 	on isSatisfiedBy(aTask)
@@ -459,7 +459,7 @@ script ContainsEstimateSpecification
 end script --ContainsEstimateSpecification
 
 script ContainsNoteSpecification
-	property parent : ddd's AbstractSpecification
+	property parent : ddd's DefaultSpecification
 	property name : "has note"
 	
 	on isSatisfiedBy(aTask)
@@ -468,7 +468,7 @@ script ContainsNoteSpecification
 end script --ContainsNoteSpecification
 
 script MatchingNameTaskSpecification
-	property parent : ddd's AbstractSpecification
+	property parent : ddd's DefaultSpecification
 	property taskName : missing value
 	property name : "matches task name"
 	
@@ -480,7 +480,7 @@ script MatchingNameTaskSpecification
 end script --MatchingNameTaskSpecification
 
 script UnparsedTaskSpecification
-	property parent : ddd's AbstractSpecification
+	property parent : ddd's DefaultSpecification
 	property name : "unparsed"
 	
 	on isSatisfiedBy(aTask)
@@ -489,7 +489,7 @@ script UnparsedTaskSpecification
 end script --UnparsedTaskSpecification
 
 script NonrepeatingTaskSpecification
-	property parent : ddd's AbstractSpecification
+	property parent : ddd's DefaultSpecification
 	property name : "not repeating"
 	
 	on isSatisfiedBy(aTask)
