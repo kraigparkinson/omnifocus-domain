@@ -200,6 +200,9 @@ script TaskEntity
 		_estimateValue() is not missing value
 	end hasEstimate	
 
+	on satisfies(aTaskSpecification)
+		return aTaskSpecification's isSatisfiedBy(me)
+	end satisfies
 end script
 
 script TaskFactory
@@ -388,42 +391,49 @@ end script
 script SpecificationFactory
 end script --SpecificationFactory
 
-script FlaggedSpecification
+script TaskSpecification
 	property parent : ddd's DefaultSpecification
+	
+	on satisfyingElementsFrom(aTaskRepository)
+		set task_list to aTaskRepository's selectAll()
+		set matching_task_list to { }
+		repeat with aTask in task_list
+			if (isSatisfiedBy(aTask)) then set end of matching_task_list to aTask
+		end repeat
+		return matching_task_list
+	end satisfyingElementsFrom
+end script
+
+script FlaggedTaskSpecification
+	property parent : TaskSpecification
 	property name : "flagged"
 	
 	on isSatisfiedBy(aTask)
-		aTask's hasFlagSet()
+		aTask's _flaggedValue()
 	end isSatisfiedBy
-end script --FlaggedSpecification
+	
+end script --FlaggedTaskSpecification
 
 script TaskHasProjectSpecification
-	property parent : ddd's DefaultSpecification
+	property parent : TaskSpecification
 	property name : "has project"
 	
-	on isSatisfiedBy(obj)
+	on isSatisfiedBy(aTask)
 		aTask's isAssignedToAProject() 
 	end isSatisfiedBy
 end script --TaskHasProjectSpecification
 
 script TaskHasAssignedContainerSpecification
-	property parent : ddd's DefaultSpecification
-	property name : "has assignd container"
+	property parent : TaskSpecification
+	property name : "has assigned container"
 	
 	on isSatisfiedBy(obj)
-		tell application "OmniFocus"
-			with timeout of 3 seconds
-			
-				return (aTask's assigned container is not missing value)
-			end timeout
-		end tell
-
-		aTask's isAssignedToAProject()
+		aTask's _assignedContainerValue() is not missing value
 	end isSatisfiedBy
 end script --TaskHasAssignedContainerSpecification
 
 script TaskHasContextSpecification
-	property parent : ddd's DefaultSpecification
+	property parent : TaskSpecification
 	property name : "has context"
 
 	on isSatisfiedBy(aTask)
@@ -432,7 +442,7 @@ script TaskHasContextSpecification
 end script --TaskHasContextSpecification
 
 script ContainsDeferDateSpecification
-	property parent : ddd's DefaultSpecification
+	property parent : TaskSpecification
 	property name : "has defer date"
 	
 	on isSatisfiedBy(aTask)
@@ -441,7 +451,7 @@ script ContainsDeferDateSpecification
 end script --ContainsDeferDateSpecification
 
 script ContainsDueDateSpecification
-	property parent : ddd's DefaultSpecification
+	property parent : TaskSpecification
 	property name : "has due date"
 	
 	on isSatisfiedBy(aTask)
@@ -450,7 +460,7 @@ script ContainsDueDateSpecification
 end script --ContainsDueDateSpecification
 
 script ContainsEstimateSpecification
-	property parent : ddd's DefaultSpecification
+	property parent : TaskSpecification
 	property name : "has estimate"
 	
 	on isSatisfiedBy(aTask)
@@ -459,7 +469,7 @@ script ContainsEstimateSpecification
 end script --ContainsEstimateSpecification
 
 script ContainsNoteSpecification
-	property parent : ddd's DefaultSpecification
+	property parent : TaskSpecification
 	property name : "has note"
 	
 	on isSatisfiedBy(aTask)
@@ -468,7 +478,7 @@ script ContainsNoteSpecification
 end script --ContainsNoteSpecification
 
 script MatchingNameTaskSpecification
-	property parent : ddd's DefaultSpecification
+	property parent : TaskSpecification
 	property taskName : missing value
 	property name : "matches task name"
 	
@@ -480,16 +490,21 @@ script MatchingNameTaskSpecification
 end script --MatchingNameTaskSpecification
 
 script UnparsedTaskSpecification
-	property parent : ddd's DefaultSpecification
+	property parent : TaskSpecification
 	property name : "unparsed"
 	
 	on isSatisfiedBy(aTask)
 		return (aTask's getName()) starts with "--"
 	end isSatisfiedBy
+	
+	on satisfyingElementsFrom(aTaskRepository)
+		aTaskRepository's selectUnparsedInboxTasks()
+	end satisfyingElementsFrom
+	
 end script --UnparsedTaskSpecification
 
 script NonrepeatingTaskSpecification
-	property parent : ddd's DefaultSpecification
+	property parent : TaskSpecification
 	property name : "not repeating"
 	
 	on isSatisfiedBy(aTask)
@@ -663,9 +678,12 @@ script DocumentTaskRepository
 				set original's context to aContext
 			end assignToContext
 			
+			on _inInbox()
+				return original's in inbox
+			end _inInbox
+			
 			on isAssignedToAProject()
---				return (_containingProjectValue() is not missing value) or ((original's in inbox) and (_assignedContainerValue() is not missing value))		
-				return (_containingProjectValue() is not missing value) or ((original's in inbox) and (_assignedContainerValue() is not missing value))		
+				return (_containingProjectValue() is not missing value) or (_inInbox() and (_assignedContainerValue() is not missing value))		
 			end isAssignedToAProject
 	
 			on assignToProject(aProject)
@@ -881,7 +899,22 @@ script DocumentTaskRepository
 			return my _wrapList(inboxItems)
 		end tell
 	end selectAllInboxTasks
+	
+	on selectSatisfyingInboxTasks(aTaskSpecification)
+		return aTaskSpecification's satisfyingElementsFrom(selectAllInboxTasks)
+	end selectSatisfyingInboxTasks
+		
+	on selectInboxTasksWhereNameStartsWith(prefix_text)
+		tell front document of application "OmniFocus"
+			set inboxItems to (every inbox task whose name starts with prefix_text)
+			return my _wrapList(inboxItems)
+		end tell
+	end selectInboxTasksWhereNameStartsWith
 
+	on selectUnparsedInboxTasks()
+		return selectInboxTasksWhereNameStartsWith("--")
+	end selectUnparsedInboxTasks
+	
 	-- Returns TaskProxy objects
 	on selectInboxTasks(spec)
 		set inboxItems to selectAllInboxTasks()
@@ -930,7 +963,7 @@ script DocumentTaskRepository
 		end tell
 		return _wrapList(theTasks)
 	end selectTasksFromProject	
-end script
+end script --DocumentTaskRepository
 
 script ContextRepository
 	on create(contextName)
@@ -1509,7 +1542,7 @@ script TransportTextParsingService
 	on updateTaskPropertiesFromName(aTask)
 		tell interpreter to update(aTask)
 	end updateTaskPropertiesFromName
-end script
+end script --TransportTextParsingService
 
 
 
