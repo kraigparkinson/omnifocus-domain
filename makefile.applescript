@@ -113,7 +113,7 @@ end script
 
 script InstallOFApplicationScripts
 	property parent : Task(me)
-	property dir : POSIX path of Â¬
+	property dir : POSIX path of Â
 		((path to library folder from user domain) as text) & "Application Scripts/com.omnigroup.OmniFocus2"
 	property description : "Install Repeat Defer Daily in" & space & dir
 	
@@ -132,7 +132,7 @@ end script
 
 script installScriptLibraries
 	property parent : Task(me)
-	property dir : POSIX path of Â¬
+	property dir : POSIX path of Â
 		((path to library folder from user domain) as text) & "Script Libraries"
 	property description : "Install OmniFocusDomain in" & space & dir
 	
@@ -187,6 +187,8 @@ script RunTests
 	property description : "Build and run tests"
 	property printSuccess : false
 	
+	shell for "open" & space & POSIX path of ((path to home folder) as text) & "test.ofocus"
+	
 	tell BuildTests to exec:{}
 	-- The following causes a segmentation fault unless ASUnit in installed in a shared location
 	set testSuite to load script POSIX file (joinPath(workingDirectory(), "test/Test OmniFocusDomain.scptd"))
@@ -211,7 +213,7 @@ end script
 
 script uninstall
 	property parent : Task(me)
-	property dir : POSIX path of Â¬
+	property dir : POSIX path of Â
 		((path to library folder from user domain) as text) & "Script Libraries"
 	property description : "Remove OmniFocusDomain from" & space & dir
 	
@@ -235,7 +237,7 @@ script VersionTask
 	property description : "Print OmniFocusDomain's version and exit"
 	property printSuccess : false
 	
-	set {n, v} to {name, version} of Â¬
+	set {n, v} to {name, version} of Â
 		(run script POSIX file (joinPath(workingDirectory(), "OmniFocusDomain.applescript")))
 	ohai(n & space & "v" & v)
 end script

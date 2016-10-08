@@ -10,15 +10,75 @@ use scripting additions
 *)
 
 use dateutil : script "com.kraigparkinson/ASDate"
-property ddd : script "com.kraigparkinson/ASDomainDrivenDesign"
+use ddd : script "com.kraigparkinson/ASDomainDrivenDesign"
 use domain : script "com.kraigparkinson/OmniFocusDomain"
 use application "OmniFocus"
 
 property parent : script "com.lifepillar/ASUnit"
 property suite : makeTestSuite("OmniFocusDomain")
 
-
 my autorun(suite)
+
+
+script |OmniFocus Document Fixture|
+	property parent : makeFixture()
+	
+	property documentFixture : missing value
+	property taskFixtures : missing value
+	
+	on setUp()
+		set taskFixtures to { }
+
+		tell application "OmniFocus"
+			set document_list to documents whose name is "Test"
+			set documentFixture to first item of document_list			
+		end tell
+
+		tell domain 
+			set aRegistry to getRegistryInstance()
+			tell aRegistry to registerDocumentInstance(documentFixture)
+		end tell
+	end setUp
+	
+	on tearDown()
+		repeat with aTask in taskFixtures
+			tell application "OmniFocus"
+				delete aTask
+			end tell
+		end repeat
+	end tearDown
+	
+	on createTask(name_text)
+		local aTask
+		tell application "OmniFocus"
+			tell documentFixture
+				set aTask to (make new inbox task with properties {name:name_text})
+			end tell
+		end tell
+
+		set end of taskFixtures to aTask
+		
+		return aTask		
+	end create
+end script --OmniFocus Document Fixture
+
+script |Sample Document Test|
+	property parent : registerFixtureOfKind(me, |OmniFocus Document Fixture|)
+	
+	script |can create and delete a task in isolation|
+		property parent : registerTestCase(me)
+		
+		set aTask to createTask("Test task")
+		
+		local actualTaskName
+		tell application "OmniFocus"
+			set actualTaskName to aTask's name
+		end tell
+		
+		shouldEqual("Test task", actualTaskName)
+
+	end script
+end script --Sample Document Test
 
 script |TaskFactory|
 	property parent : registerFixture(me)
@@ -50,7 +110,7 @@ script |TaskFactory|
 		assertMissing(aTask's _noteValue(), "Note should not be set.")
 	end script
 
-end script
+end script --TaskFactory
 
 script |TaskEntityImpl|
 	property parent : registerFixture(me)
@@ -86,39 +146,36 @@ script |TaskEntityImpl|
 		aTask's deferUntil(aDate)
 		should(aTask's hasDeferDate(), "Should be deferred.")
 	end script
-end script 
+end script --TaskEntityImpl
 
 script |TaskProxy|
-	property parent : registerFixture(me)
+	property parent : registerFixtureOfKind(me, |OmniFocus Document Fixture|)
 	property taskFixture : missing value
 	property projectFixture : missing value
 	property contextFixture : missing value
 	
 	on setUp()
+		continue setUp()
 		set expectedTaskName to "Test TaskProxy"
 		
 		set taskProperties to {name:expectedTaskName}
-		try
-			tell default document of application "OmniFocus"
-				set taskFixture to (make new inbox task with properties taskProperties)
-			end tell
-		on error errMsg number errNum
-			log "Error creating task: " & errMsg & errNum & taskFixture
-			error errMsg number errNum
-		end try
+		set taskFixture to createTask(expectedTaskName)
 		
 		set projectFixture to missing value
 		set contextFixture to missing value
 	end setUp
 	
 	on tearDown()
+		continue tearDown()
 		tell application "OmniFocus"
+			(*
 			try
 				delete taskFixture
 			on error errMsg number errNum
 				log "Error deleting task: " & errMsg & errNum & taskFixture
 				error errMsg number errNum
 			end try
+			*)
 			try
 				if projectFixture is not missing value then delete projectFixture
 			on error errMsg number errNum
@@ -132,6 +189,7 @@ script |TaskProxy|
 				error errMsg number errNum
 			end try
 		end tell
+		
 	end tearDown
 
 	script |create returns wrapped task|
@@ -197,7 +255,7 @@ script |TaskProxy|
 		set contextFixture to domain's ContextRepository's create("Test Task Proxy - Assigned Task to Project")
 		aTask's assignToContext(contextFixture)
 		
-		tell application "OmniFocus" to compact default document
+		tell application "OmniFocus" to compact my documentFixture
 		
 		using terms from application "OmniFocus"
 			my refute(aTask's original is in inbox, "Task should no longer be in inbox once project and context assigned and compacted.")
@@ -206,7 +264,7 @@ script |TaskProxy|
 		assertEqual(projectFixture, aTask's _containingProjectValue())		
 	end script	
 	
-end script 
+end script --TaskProxy
 
 script |TaskRepository Fixture|
     property parent : makeFixture()
@@ -220,7 +278,7 @@ script |TaskRepository Fixture|
 	on tearDown()
 		set domain's _taskRepository to lastRepo
 	end tearDown
-end script
+end script --TaskRepository
 
 script |NonrepeatingTaskSpecification|
 	property parent : registerFixture(me)
@@ -247,7 +305,7 @@ script |NonrepeatingTaskSpecification|
 		
 		refute(aSpec's isSatisfiedBy(aTask), "Should have a repetition rule now.")
 	end script
-end script  
+end script  --NonrepeatingTaskSpecification
 
 
 script |DeferDailyRuleCommand|
@@ -293,7 +351,7 @@ script |DeferDailyRuleCommand|
 		end tell
 	end script
 	
-end script  
+end script  --DeferDailyRuleCommand
 
 
 script |DueAgainCommand|
@@ -339,7 +397,7 @@ script |DueAgainCommand|
 		end tell
 	end script
 	
-end script  
+end script  --DueAgainCommand
 
 
 script |RepeatEveryPeriodCommand|
@@ -393,7 +451,7 @@ script |Specification Fixture|
 	on testSpecification(aSpec, aTask)
 		should(aSpec's isSatisfiedBy(aTask), "Spec should be satisfied.")
 	end testSpecification
-end script
+end script --Specification Fixture
 
 script |MatchingNameTaskSpecification|
 	property parent : registerFixtureOfKind(me, |Specification Fixture|)
@@ -411,7 +469,7 @@ script |MatchingNameTaskSpecification|
 		testSpecification(aSpec, aTask)
 --		should(aSpec's isSatisfiedBy(aTask), "Spec should be satisfied.")
 	end script 
-end script
+end script --MatchingTaskNAmeSpecification
 
 script |UnparsedTaskSpecification|
 	property parent : registerFixture(me)
@@ -437,7 +495,7 @@ script |UnparsedTaskSpecification|
 
 		shouldnt(aSpec's isSatisfiedBy(aTask), "Spec should not be satisfied.")
 	end script 	
-end script
+end script --UnparsedTaskSpecification
 
 
 
@@ -490,50 +548,47 @@ script |DocumentProjectRepository|
 				
 		shouldEqual(missing value, domain's ProjectRepository's findByName("Test Find non-existing project"))
 	end script
-end script
+end script --DocumentProjectRepository
 
 script |DocumentTaskRepository|
+	property parent : registerFixtureOfKind(me, |OmniFocus Document Fixture|)
+	
 	property PROJECT_FIXTURE_NAME : "Test" & space & "DocumentTaskRepository" & space & "(Project)"
 	property CONTEXT_FIXTURE_NAME : "Test DocumentTaskRepository (Context)"
-	property parent : registerFixture(me)
-	property taskList : {}
+	property task_list : missing value
 	property contextFixture : missing value
 	property contextList : {}
 	property projectFixture : missing value
 	property projectList : {}
 	
 	on setUp()
-		set taskList to {}
+		continue setUp()
 		
+		set task_list to { }
 		set contextFixture to domain's ContextRepository's create(CONTEXT_FIXTURE_NAME)
 		set contextList to { contextFixture }
 		set projectFixture to domain's ProjectRepository's create(PROJECT_FIXTURE_NAME)
 		set projectList to { projectFixture }
 	end setUp
-	
-	on addTaskToFixture(aTask)
-		set end of taskList to aTask
---		set taskList to taskList & { aTask }		
-	end addTaskToFixture
-	
-	on tearDown()
-		set errorList to { }
 		
-		repeat with aTask in taskList
+	on tearDown()
+		continue tearDown()
+		set errorList to { }
+				
+		repeat with aTask in task_list
 			tell application "OmniFocus"
 				try
-					delete aTask's original
+					tell my documentFixture to delete aTask's original
 				on error errMsg number errNum
-					set end of errorList to errMsg
 					log "Error deleting task: " & errMsg & errNum
+					set end of errorList to errMsg
 				end try
 			end tell
 		end repeat
-		
 		repeat with aContext in contextList
 			tell application "OmniFocus"
 				try
-					tell default document to delete aContext
+					tell my documentFixture to delete aContext
 				on error errMsg number errNum
 					log "Error deleting context: " & errMsg & errNum
 					set end of errorList to errMsg
@@ -543,7 +598,7 @@ script |DocumentTaskRepository|
 		repeat with aProject in projectList
 			tell application "OmniFocus"
 				try
-					tell default document to delete aProject
+					tell my documentFixture to delete aProject
 				on error errMsg number errNum
 					log "Error deleting project: " & errMsg & errNum
 					set end of errorList to errMsg
@@ -561,14 +616,21 @@ script |DocumentTaskRepository|
 		set expectedDeferDate to date "2009-01-02"
 		set expectedDueDate to date "2009-05-31"
 		
-		tell default document of application "OmniFocus"
-			set taskProperties to {name:expectedTaskName, assigned container:projectFixture, context:contextFixture, defer date:expectedDeferDate, due date:expectedDueDate, estimated minutes:10, flagged:true, note:"A great note."}
-			set aTask to make new inbox task with properties taskProperties
+		tell application "OmniFocus"
+--			set taskProperties to {name:expectedTaskName, assigned container:projectFixture, context:contextFixture, defer date:expectedDeferDate, due date:expectedDueDate, estimated minutes:10, flagged:true, note:"A great note."}
+			set aTask to my createTask(expectedTaskName)
+			set aTask's assigned container to projectFixture
+			set aTask's context to contextFixture
+			set aTask's defer date to expectedDeferDate
+			set aTask's due date to expectedDueDate
+			set aTask's estimated minutes to 10
+			set aTask's flagged to true
+			set aTask's note to "A great note."
+			
+--			set aTask to make new inbox task with properties taskProperties
 			set aTask to domain's DocumentTaskRepository's _makeTaskProxy(aTask)
 		end tell
-		
-		addTaskToFixture(aTask)
-		
+				
 		assertEqual(expectedTaskName, aTask's getName())
 		assertEqual(projectFixture, aTask's _assignedContainerValue())
 		assertEqual(contextFixture, aTask's _contextValue())
@@ -596,7 +658,7 @@ script |DocumentTaskRepository|
 		aTask's setName(expectedTaskName)
 		
 		set aTask to domain's DocumentTaskRepository's addTask(aTask)
-		addTaskToFixture(aTask)
+		set end of task_list to aTask
 		
 		set aSpec to domain's MatchingNameTaskSpecification
 		set taskName of aSpec to expectedTaskName
@@ -628,7 +690,7 @@ script |DocumentTaskRepository|
 		set aTask's _note to "This is a note"
 		set aTask's _flagged to true
 		set aTask to domain's DocumentTaskRepository's addTask(aTask)
-		addTaskToFixture(aTask)
+		set end of task_list to aTask
 
 		assertEqual("Test add preserves values as provided", aTask's getName())
 		assertEqual(projectFixture, aTask's _assignedContainerValue())
@@ -651,11 +713,12 @@ script |DocumentTaskRepository|
 		set transportText to expectedTaskName & "! ::" & PROJECT_FIXTURE_NAME & " @" & CONTEXT_FIXTURE_NAME & " $5m" & " //" & expectedNote
 		
 		set newTaskList to domain's DocumentTaskRepository's addTaskFromTransportText(transportText)
+		set task_list to task_list & newTaskList
 		
 		should(count of newTaskList is 1, "Should have one task from adding task via transport text") 
 		
 		set myTask to first item in newTaskList		
-		addTaskToFixture(myTask)
+		
 		shouldEqual(expectedTaskName, myTask's getName())
 		shouldEqual(projectFixture, myTask's _containingProjectValue())
 		shouldEqual(contextFixture, myTask's _contextValue())
@@ -670,8 +733,9 @@ script |DocumentTaskRepository|
 		
 		set aTask to domain's TaskFactory's create()
 		tell aTask to setName("Test findById")
+
 		set aTask to domain's DocumentTaskRepository's addTask(aTask)
-		addTaskToFixture(aTask)
+		set end of task_list to aTask
 			
 		local taskId
 		using terms from application "OmniFocus"
@@ -706,7 +770,7 @@ script |DocumentTaskRepository|
 
 		assertMissing(domain's DocumentTaskRepository's findById(taskId), "Should not have found such a task")
 	end script
-end script
+end script --DocumentTaskRepository
 
 script |ContextRepository|
 	property parent : registerFixture(me)
@@ -833,4 +897,4 @@ script |ContextRepository|
 	end script
 
 	
-end script
+end script --ContextRepository

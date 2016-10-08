@@ -69,6 +69,9 @@ script TaskEntity
 	on setName(newName)
 	end setName
 
+	on setNote(newNote)
+	end setNote
+
 	on isDueOn(aDate)
 		_dueDateValue() is aDate
 	end isDueOn
@@ -264,6 +267,10 @@ script TaskFactory
 				set _name to newName
 			end setName
 	
+			on setNote(aNote)
+				set _noteValue to aNote
+			end setNote
+			
 			on isDueOn(aDate)
 				_dueDate is aDate
 			end isDueOn
@@ -569,8 +576,44 @@ script RuntimeTaskRepository
 	end addTask	
 end script
 
+script TaskList
+	on selectSatisfyingTasks(aSpec)
+		
+	end selectSatisfyingTasks
+end script
+
+property registryInstance : missing value
+
+on getRegistryInstance()	
+	if (registryInstance is missing value) then
+		script Registry
+			property user_document : missing value
+
+			on registerDocumentInstance(aDocument)
+				if (aDocument is missing value) then error "Cannot register a missing value."
+				set user_document to aDocument
+				log "Registered document: " & aDocument's name
+				log "End: Registering document instance."
+			end registerDocumentInstance
+	
+			on getDocumentInstance()
+				if user_document is missing value
+			 		log "Document not set; initializing to use default document of OmniFocus."
+					set user_document to default document of application "OmniFocus"
+				end if 
+
+				return user_document	
+			end getDocumentInstance
+		end script
+		set registryInstance to Registry
+	end if 
+	
+	return registryInstance
+end getRegistryInstance
+
 script DocumentTaskRepository
 	property parent : TaskRepository
+	
 
 	on _makeTaskProxy(aTask)
 		if (aTask is missing value) then error "Cannot create TaskProxy with missing value."
@@ -622,6 +665,12 @@ script DocumentTaskRepository
 					original's note
 				end using terms from
 			end _noteValue
+			
+			on setNote(aNote)
+				using terms from application "OmniFocus" 
+					set original's note to aNote
+				end using terms from
+			end setNote
 	
 			on _repetitionRuleValue()
 				original's repetition rule
@@ -852,8 +901,10 @@ script DocumentTaskRepository
 			aBuilder's addFlagged(aTask's _flaggedValue())
 			aBuilder's addNote(aTask's _noteValue())
 		
-			tell default document of application "OmniFocus"
-				set newTask to (make new inbox task with properties {name:aTask's getName()})
+			tell application "OmniFocus"
+				tell (my getRegistryInstance()'s getDocumentInstance())
+					set newTask to (make new inbox task with properties {name:aTask's getName()})
+				end tell
 			end tell
 		
 			aBuilder's fillTask(newTask)
@@ -870,7 +921,9 @@ script DocumentTaskRepository
 	end addTask
 	
 	on addTaskFromTransportText(transportText)
-		_wrapList(parse tasks into default document with transport text transportText with as single task)
+		set aRegistry to getRegistryInstance()
+		set aDocument to aRegistry's getDocumentInstance()
+		_wrapList(parse tasks into (aDocument) with transport text transportText with as single task)
 	end addTaskFromTransportText
 	
 	(*
@@ -879,7 +932,10 @@ script DocumentTaskRepository
 		@post: list has at least one item
 	*)
 	on addAllTasksFromTransportText(transportText)
-		_wrapList(parse tasks into default document with transport text transportText)
+		set aRegistry to getRegistryInstance()
+		set aDocument to aRegistry's getDocumentInstance()
+		
+		_wrapList(parse tasks into (aDocument) with transport text transportText)
 	end addAllTasksFromTransportText
 
 	on removeTask(aTask)
@@ -888,15 +944,19 @@ script DocumentTaskRepository
 	
 	-- Returns TaskProxy objects
 	on selectUserSpecifiedTasks()
-		tell content of first document window of front document of application "OmniFocus"
+		tell application "OmniFocus"
+			tell content of first document window of (my getRegistryInstance()'s getDocumentInstance()) 
 			return my _wrapList(value of (selected trees where class of its value is not item and class of its value is not folder))
 		end tell		
+		end tell
 	end selectUserSpecifiedTasks
 	
 	on selectAllInboxTasks()
-		tell front document of application "OmniFocus"
-			set inboxItems to every inbox task
-			return my _wrapList(inboxItems)
+		tell application "OmniFocus"
+			tell (my getRegistryInstance()'s getDocumentInstance())
+				set inboxItems to every inbox task
+				return my _wrapList(inboxItems)
+			end tell
 		end tell
 	end selectAllInboxTasks
 	
@@ -905,9 +965,11 @@ script DocumentTaskRepository
 	end selectSatisfyingInboxTasks
 		
 	on selectInboxTasksWhereNameStartsWith(prefix_text)
-		tell front document of application "OmniFocus"
-			set inboxItems to (every inbox task whose name starts with prefix_text)
-			return my _wrapList(inboxItems)
+		tell application "OmniFocus"
+			tell (my getRegistryInstance()'s getDocumentInstance())
+				set inboxItems to (every inbox task whose name starts with prefix_text)
+				return my _wrapList(inboxItems)
+			end tell
 		end tell
 	end selectInboxTasksWhereNameStartsWith
 
@@ -931,28 +993,32 @@ script DocumentTaskRepository
 	end selectInboxTasks
 	
 	on findById(taskId)
-		tell front document of application "OmniFocus"
-			set taskList to tasks where id is taskId
-			if (count of taskList is greater than 0) then
-				set aTask to first item in taskList
-				return my _makeTaskProxy(aTask)
-			else 
-				--Look in inbox tasks next
-				set taskList to inbox tasks where id is taskId
+		tell application "OmniFocus"
+			tell (my getRegistryInstance()'s getDocumentInstance())
+				set taskList to tasks where id is taskId
 				if (count of taskList is greater than 0) then
 					set aTask to first item in taskList
 					return my _makeTaskProxy(aTask)
 				else 
-					return missing value
+					--Look in inbox tasks next
+					set taskList to inbox tasks where id is taskId
+					if (count of taskList is greater than 0) then
+						set aTask to first item in taskList
+						return my _makeTaskProxy(aTask)
+					else 
+						return missing value
+					end if
 				end if
-			end if
+			end tell
 		end tell
 	end findById
 	
 	on selectAll()
-		tell front document of application "OmniFocus"
-			set inboxItems to tasks
-			return my _wrapList(inboxItems)
+		tell application "OmniFocus"
+			tell (my getRegistryInstance()'s getDocumentInstance())
+				set inboxItems to tasks
+				return my _wrapList(inboxItems)
+			end tell
 		end tell
 	end selectAll
 	
@@ -963,14 +1029,25 @@ script DocumentTaskRepository
 		end tell
 		return _wrapList(theTasks)
 	end selectTasksFromProject	
+	
+	on selectIncompleteProjectTasks(aProject)
+		local theTasks
+		tell application "OmniFocus"
+			set theTasks to aProject's tasks whose completed is false
+		end tell
+		return _wrapList(theTasks)
+	end selectIncompleteProjectTasks
+
 end script --DocumentTaskRepository
 
 script ContextRepository
 	on create(contextName)
 		local newContext
 	
-		tell default document of application "OmniFocus"
-			set newContext to make new context with properties {name:contextName}
+		tell application "OmniFocus"
+			tell (my getRegistryInstance()'s getDocumentInstance())
+				set newContext to make new context with properties {name:contextName}
+			end tell
 		end tell
 	
 		if newContext is equal to missing value then
@@ -982,10 +1059,11 @@ script ContextRepository
 	on createChild(parentContext, contextName)
 		local newContext
 	
-		tell default document of application "OmniFocus"
-			set newContext to make new context at parentContext with properties {name:contextName}
+		tell application "OmniFocus"
+			tell (my getRegistryInstance()'s getDocumentInstance())
+				set newContext to make new context at parentContext with properties {name:contextName}
+			end tell
 		end tell
-			
 		if newContext is equal to missing value then
 			error "Context not created for " & contextName
 		end if
@@ -997,28 +1075,32 @@ script ContextRepository
 	*)
 	on findByName(contextName)
 		local theContext
-	
-		tell front document of application "OmniFocus"
 		
-			set thePossibleContexts to complete contextName as context maximum matches 1
-			if ((count of thePossibleContexts) is equal to 1) then
-				set theContextID to id of first item of thePossibleContexts
-				set theContext to context id theContextID
-			else
-				set theContext to missing value
-			end if
+		tell application "OmniFocus"
+			tell (my getRegistryInstance()'s getDocumentInstance())
+		
+				set thePossibleContexts to complete contextName as context maximum matches 1
+				if ((count of thePossibleContexts) is equal to 1) then
+					set theContextID to id of first item of thePossibleContexts
+					set theContext to context id theContextID
+				else
+					set theContext to missing value
+				end if
+			end tell
 		end tell
 	
 		return theContext
 	end findByName
-end script
+end script --ContextRepository
 
 script ProjectRepository
 	on create(projectName)
 		local newProject
 	
-		tell default document
-			set newProject to make new project with properties {name:projectName}
+		tell application "OmniFocus"
+			tell (my getRegistryInstance()'s getDocumentInstance())
+				set newProject to make new project with properties  {name:projectName}
+			end tell
 		end tell
 		return newProject
 	end create
@@ -1026,17 +1108,16 @@ script ProjectRepository
 	on findByName(projectName)
 		local theProject
 	
-		tell front document of application "OmniFocus"
-			with timeout of 3 seconds
-		
-			set thePossibleProjects to complete projectName as project maximum matches 1
-			if ((count of thePossibleProjects) is equal to 1) then
-				set theProjectID to id of first item of thePossibleProjects
-				set theProject to project id theProjectID
-			else
-				set theProject to missing value
-			end if
-		end timeout
+		tell application "OmniFocus"
+			tell my (getRegistryInstance()'s getDocumentInstance())
+				set thePossibleProjects to complete projectName as project maximum matches 1
+				if ((count of thePossibleProjects) is equal to 1) then
+					set theProjectID to id of first item of thePossibleProjects
+					set theProject to project id theProjectID
+				else
+					set theProject to missing value
+				end if
+			end tell
 		end tell
 		return theProject
 	end findProjectFromName

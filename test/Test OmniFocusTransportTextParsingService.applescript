@@ -17,8 +17,58 @@ property suite : makeTestSuite("OF Transport Text Tokenizer")
 
 my autorun(suite)
 
+script |OmniFocus Document Fixture|
+	property parent : makeFixture()
+	
+	property documentFixture : missing value
+	property taskFixtures : missing value
+	
+	on setUp()
+		set taskFixtures to { }
+
+		tell application "OmniFocus"
+			set document_list to documents whose name is "Test"
+			set documentFixture to first item of document_list			
+		end tell
+
+		tell domain 
+			set aRegistry to getRegistryInstance()
+			tell aRegistry to registerDocumentInstance(documentFixture)
+		end tell
+	end setUp
+	
+	on tearDown()
+		repeat with aTask in taskFixtures
+			tell application "OmniFocus"
+--				tell documentFixture to delete aTask 
+				delete aTask
+			end tell
+		end repeat
+	end tearDown
+	
+	on createTask(name_text)
+		log "Begin: createTask"
+		local aTask
+--		tell documentFixture of application "OmniFocus"
+--			set aTask to (make new inbox task with properties {name:name_text})
+--		end tell
+		
+		tell application "OmniFocus"
+			set task_list to (parse tasks into documentFixture with transport text name_text with as single task)
+			set aTask to first item of task_list
+--			set aTask to (parse tasks into documentFixture with transport text name_text with as single task)
+		end tell
+
+		set end of taskFixtures to aTask
+		log "End: createTask"
+		
+		return aTask		
+	end create
+end script --OmniFocus Document Fixture
+
+	
 script |AssignedContainerNameExpression|
-	property parent : registerFixture(me)
+	property parent : registerFixtureOfKind(me, |OmniFocus Document Fixture|)
 	property PROJECT_FIXTURE_NAME : "Test: (Project) AssignedContainerNameExpression"
 	property CONTEXT_FIXTURE_NAME : "Test: (Context) AssignedContainerNameExpression"
 	property taskList : missing value
@@ -28,6 +78,7 @@ script |AssignedContainerNameExpression|
 	property contextList : missing value
 	
 	on setUp()
+		continue setUp()
 		set taskList to { }
 		
 		set projectFixture to domain's ProjectRepository's create(PROJECT_FIXTURE_NAME)
@@ -40,6 +91,7 @@ script |AssignedContainerNameExpression|
 	end setUp
 	
 	on tearDown()
+		continue tearDown()
 		tell application "OmniFocus"
 			repeat with aTask in taskList
 				delete aTask's original
@@ -283,10 +335,10 @@ script |TransportTextParsingService|
 		set taskList to { }
 		
 		set projectFixture to domain's ProjectRepository's create(PROJECT_FIXTURE_NAME)
-		set projectList to {projectFixture}
+		set projectList to { projectFixture }
 		
 		set contextFixture to domain's ContextRepository's create(CONTEXT_FIXTURE_NAME)
-		set contextList to {contextFixture}
+		set contextList to { contextFixture }
 		
 		set domain's _taskRepository to domain's DocumentTaskRepository
 	end setUp

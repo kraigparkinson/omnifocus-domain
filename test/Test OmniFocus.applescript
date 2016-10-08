@@ -166,8 +166,10 @@ script |parse tasks into from transport text|
 		set expectedTaskName to "Test create tasks with transport text inexact deep"
 
 		local expectedContext
-		tell default document of application "OmniFocus"
-			set expectedContext to make new context at contextFixture with properties {name:"Test Child context"}
+		tell application "OmniFocus"
+			tell default document
+				set expectedContext to make new context at contextFixture with properties {name:"Test Child context"}
+			end tell
 		end tell
 
 		testCreateTaskWithTransportText(expectedTaskName & " ::Test OmniFocus (Proj" & " @Test Child $5m //A note.", expectedTaskName, projectFixture, expectedContext, missing value, missing value, 5, "A note.")
