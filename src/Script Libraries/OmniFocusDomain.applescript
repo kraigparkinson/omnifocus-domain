@@ -951,6 +951,15 @@ script DocumentTaskRepository
 		end tell
 	end selectUserSpecifiedTasks
 	
+	on selectAllTasks()
+		tell application "OmniFocus"
+			tell (my getRegistryInstance()'s getDocumentInstance())
+				set items to every task
+				return my _wrapList(items)
+			end tell
+		end tell
+	end selectAllTasks 
+	
 	on selectAllInboxTasks()
 		tell application "OmniFocus"
 			tell (my getRegistryInstance()'s getDocumentInstance())
@@ -959,10 +968,25 @@ script DocumentTaskRepository
 			end tell
 		end tell
 	end selectAllInboxTasks
+
+	on selectExpirableTasks()
+		tell application "OmniFocus"
+			tell (my getRegistryInstance()'s getDocumentInstance())
+				set taskItems to (every flattened task whose name contains "-> DELETE)")
+--				set taskItems to (every task whose name starts with "(" and name contains "-> DELETE)")
+				return my _wrapList(taskItems)
+			end tell
+		end tell
+	end selectExpirableTasks
 	
-	on selectSatisfyingInboxTasks(aTaskSpecification)
-		return aTaskSpecification's satisfyingElementsFrom(selectAllInboxTasks)
-	end selectSatisfyingInboxTasks
+	on selectAllTasksWhereNameContains(prefix_text)
+		tell application "OmniFocus"
+			tell (my getRegistryInstance()'s getDocumentInstance())
+				set taskItems to (every task whose name contains prefix_text)
+				return my _wrapList(taskItems)
+			end tell
+		end tell
+	end selectAllTasksWhereNameContains
 		
 	on selectInboxTasksWhereNameStartsWith(prefix_text)
 		tell application "OmniFocus"
@@ -991,6 +1015,10 @@ script DocumentTaskRepository
 		
 		return matchingItems
 	end selectInboxTasks
+	
+--	on selectSatisfyingInboxTasks(aTaskSpecification)
+--		return aTaskSpecification's satisfyingElementsFrom(me)
+--	end selectSatisfyingInboxTasks
 	
 	on findById(taskId)
 		tell application "OmniFocus"

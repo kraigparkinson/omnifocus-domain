@@ -399,7 +399,6 @@ script |DueAgainCommand|
 	
 end script  --DueAgainCommand
 
-
 script |RepeatEveryPeriodCommand|
 	property parent : registerFixture(me)
 	
@@ -664,6 +663,29 @@ script |DocumentTaskRepository|
 		set taskName of aSpec to expectedTaskName
 		
 		set actualTasks to domain's DocumentTaskRepository's selectInboxTasks(aSpec)
+		
+		shouldEqual(1, count of actualTasks)
+		
+		tell application "OmniFocus"
+			set actualTask to first item of actualTasks
+			my shouldEqual(aTask's original's id, actualTask's original's id)
+			my shouldEqual(expectedTaskName, actualTask's getName())
+		end tell		
+	end script
+	
+	script |select expirable tasks|
+		property parent : registerTestCase(me)
+		
+		set expectedTaskName to "(2016-12-12 -> DELETE) Test select expirable tasks"
+		
+		set aTask to domain's TaskFactory's create()
+		aTask's setName(expectedTaskName)
+		aTask's assignToProject(projectFixture)
+		
+		set aTask to domain's DocumentTaskRepository's addTask(aTask)
+		set end of task_list to aTask
+		
+		set actualTasks to domain's DocumentTaskRepository's selectExpirableTasks()
 		
 		shouldEqual(1, count of actualTasks)
 		

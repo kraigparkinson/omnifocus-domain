@@ -173,7 +173,7 @@ script |AssignedContainerNameExpression|
 
 end script
 
-script |CustomerInterpreter|
+script |CustomInterpreter|
 	property parent : registerFixture(me)
 
 	on setUp()
