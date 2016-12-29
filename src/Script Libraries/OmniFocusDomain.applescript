@@ -1184,6 +1184,18 @@ script CommandFactory
 		end script
 		return MarkCompleteCommand
 	end makeMarkCompleteCommand
+
+	on makeDeleteCommand()
+		script DeleteCommand
+			property parent : TaskCommand
+			property name : "Delete"
+
+			on execute(aTask)
+				taskRepositoryInstance()'s removeTask(aTask)
+			end execute
+		end script
+		return DeleteCommand
+	end makeDeleteCommand
 	
 	on makeAppendNoteCommand(aNote)
 		script AppendNoteCommand
