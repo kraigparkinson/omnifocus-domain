@@ -939,7 +939,12 @@ script DocumentTaskRepository
 	end addAllTasksFromTransportText
 
 	on removeTask(aTask)
-		delete aTask's original
+--		delete aTask's original
+		tell application "OmniFocus"
+			tell (my getRegistryInstance()'s getDocumentInstance())
+				delete aTask's original
+			end tell
+		end tell
 	end removeTask
 	
 	-- Returns TaskProxy objects

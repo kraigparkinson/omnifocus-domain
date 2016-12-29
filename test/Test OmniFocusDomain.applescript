@@ -287,7 +287,7 @@ script |NonrepeatingTaskSpecification|
 		property parent : registerTestCase(me)
 		
 		set aTask to domain's TaskFactory's create()
-		aTask's setName("Foo")
+		aTask's setName("Test nonrepeating task spec passes without repetition rule")
 		
 		set aSpec to domain's NonrepeatingTaskSpecification
 		
@@ -298,7 +298,7 @@ script |NonrepeatingTaskSpecification|
 		property parent : registerTestCase(me)
 		
 		set aTask to domain's TaskFactory's create()
-		aTask's setName("Foo")
+		aTask's setName("Test nonrepeating task spec fails with repetition rule set")
 		aTask's deferDaily()
 		
 		set aSpec to domain's NonrepeatingTaskSpecification
@@ -321,7 +321,7 @@ script |DeferDailyRuleCommand|
 		property parent : registerTestCase(me)
 	
 		set aTask to domain's TaskFactory's create()
-		aTask's setName("Foo")
+		aTask's setName("Test defer daily rule command works")
 		
 		set aCommand to domain's CommandFactory's makeDeferAnotherCommand("DAILY")
 		
@@ -338,7 +338,7 @@ script |DeferDailyRuleCommand|
 		property parent : registerTestCase(me)
 	
 		set aTask to domain's TaskFactory's create()
-		aTask's setName("Foo")
+		aTask's setName("Test defer weekly rule command works")
 		
 		set aCommand to domain's CommandFactory's makeDeferAnotherCommand("WEEKLY")
 		
@@ -354,6 +354,7 @@ script |DeferDailyRuleCommand|
 end script  --DeferDailyRuleCommand
 
 
+
 script |DueAgainCommand|
 	property parent : registerFixture(me)
 	
@@ -367,7 +368,7 @@ script |DueAgainCommand|
 		property parent : registerTestCase(me)
 	
 		set aTask to domain's TaskFactory's create()
-		aTask's setName("Foo")
+		aTask's setName("Test due again command works daily")
 	
 		set aCommand to domain's CommandFactory's makeDueAgainCommand("DAILY")
 		
@@ -384,7 +385,7 @@ script |DueAgainCommand|
 		property parent : registerTestCase(me)
 	
 		set aTask to domain's TaskFactory's create()
-		aTask's setName("Foo")
+		aTask's setName("Test due again weekly works")
 	
 		set aCommand to domain's CommandFactory's makeDueAgainCommand("WEEKLY")
 		
@@ -412,7 +413,7 @@ script |RepeatEveryPeriodCommand|
 		property parent : registerTestCase(me)
 	
 		set aTask to domain's TaskFactory's create()
-		aTask's setName("Foo")
+		aTask's setName("Test repeat every period daily works")
 	
 		set aCommand to domain's CommandFactory's makeRepeatEveryCommand("DAILY")
 		
@@ -429,7 +430,7 @@ script |RepeatEveryPeriodCommand|
 		property parent : registerTestCase(me)
 	
 		set aTask to domain's TaskFactory's create()
-		aTask's setName("Foo")
+		aTask's setName("Test repeat every period weekly works")
 
 		set aCommand to domain's CommandFactory's makeRepeatEveryCommand("WEEKLY")
 		
@@ -443,6 +444,31 @@ script |RepeatEveryPeriodCommand|
 	end script
 	
 end script  
+
+script |DeleteCommand|
+	property parent : registerFixtureOfKind(me, |OmniFocus Document Fixture|)
+	
+	script |test delete works|
+		property parent : registerTestCase(me)
+	
+		set aTask to domain's TaskFactory's create()
+		aTask's setName("Test delete command")
+		set aTask to domain's DocumentTaskRepository's addTask(aTask) 
+		
+		local expectedTaskId
+		
+		tell application "OmniFocus"
+			set expectedTaskId to aTask's original's id 
+		end tell
+	
+		set aCommand to domain's CommandFactory's makeDeleteCommand()
+		
+		tell aCommand to execute(aTask)
+		
+		assertMissing(domain's DocumentTaskRepository's findById(expectedTaskId), "Should not have been found.")
+	end script
+	
+end script  --DeleteCommand
 
 script |Specification Fixture|
 	property parent : makeFixture()
